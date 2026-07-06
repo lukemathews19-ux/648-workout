@@ -5,8 +5,11 @@
 // Structure: 4-week blocks. Anchor lifts stay fixed within a block (that's how
 // you progress), accessories rotate every week (that's how it stays fun).
 
-// Monday 2026-01-05 = week 0. Every week is anchored to its Monday.
-const PROGRAM_EPOCH = new Date(2026, 0, 5);
+// Monday 2026-07-06 = week 0 = Week 1 of the Foundation block — the day Luke &
+// Kristen started the program. Every week is anchored to its Monday, and every
+// device computes the same week number from this constant, which is what keeps
+// both phones in sync without a server.
+const PROGRAM_EPOCH = new Date(2026, 6, 6);
 
 function mondayOf(date) {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -93,8 +96,8 @@ const WARMUPS = [
   '2 min row + 1 trip down the agility ladder x2, then 10 KB deadlifts with a light bell',
 ];
 
-// Week 4 of every block = deload
-function isDeloadWeek(week) { return week % 4 === 3; }
+// Week 4 of every block = deload (positive modulo so pre-epoch weeks behave)
+function isDeloadWeek(week) { return ((week % 4) + 4) % 4 === 3; }
 
 /**
  * Build the full week: { week, weekKey, block, blockName, weekOfBlock, deload, days: {A, B, C} }
