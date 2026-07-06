@@ -20,6 +20,8 @@ let shortMode = false;    // ⚡ 20-minute version of today's workout
 let cardio = { mode: 'any', dur: 20, shuffle: 0, open: false };
 let sessTicker = null;    // interval updating the session clock
 let circuitProgress = 0;  // 0..1, fed by the circuit timer
+let tvOverlay = null;     // 📺 TV-mode overlay element
+let tvTicker = null;
 const todayISO = () => {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -180,8 +182,115 @@ function updateProgress() {
 }
 // iOS releases the wake lock when the app is backgrounded — grab it back
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && sessionLog()) keepAwake(true);
+  if (document.visibilityState === 'visible' && (sessionLog() || tvOverlay)) keepAwake(true);
 });
+
+// ----- 📺 TV mode: big-screen layout for AirPlay mirroring to the garage TV -----
+function enterTV() {
+  exitTV();
+  keepAwake(true);
+  const plan = buildWeek(new Date());
+  const day = plan.days[selectedDay];
+  const weekLabel = plan.deload ? 'DELOAD WEEK' : `WEEK ${plan.weekOfBlock} OF 4 · ${plan.blockName.toUpperCase()}`;
+
+  if (selectedDay === 'C') {
+    tvOverlay = el(`
+      <div id="tv-mode">
+        <div class="tv-top">
+          <button class="tv-exit">✕</button>
+          <div class="tv-title">DAY C · ${esc(day.format.name).toUpperCase()}</div>
+          <div class="tv-round" id="tv-round"></div>
+        </div>
+        <div class="tv-center">
+          <div class="tv-phase" id="tv-phase">READY</div>
+          <div class="tv-clock" id="tv-clock">${day.format.work}</div>
+          <div class="tv-now" id="tv-now"></div>
+          <div class="tv-next" id="tv-next"></div>
+        </div>
+        <div class="tv-bottom">
+          <button class="btn tv-startbtn" id="tv-start">▶ Start circuit</button>
+          <div class="prog-track"><div class="prog-fill" id="tv-fill"></div></div>
+          <span class="tv-sess" id="tv-sess"></span>
+        </div>
+      </div>`);
+    // forward taps to the real timer controls hidden underneath
+    tvOverlay.querySelector('#tv-start').onclick = () => {
+      const btn = document.getElementById('t-start');
+      if (btn && btn.style.display !== 'none') btn.click();
+      updateTv();
+    };
+  } else {
+    const slots = day.slots.filter(s => user === 'luke' || !s.bonus).filter(s => !shortMode || s.anchor);
+    const rows = slots.map(s => {
+      const ex = EXERCISES[s.exId];
+      const nSets = shortMode ? Math.min(3, s.sets[user]) : s.sets[user];
+      return `<div class="tv-row ${s.superset ? 'ss' + s.superset : ''}">
+        <div class="tv-ex">${s.anchor ? '⭐ ' : ''}${esc(ex.name)}${s.bonus ? ' <span class="tv-bonus">BONUS</span>' : ''}</div>
+        <div class="tv-scheme">${nSets} × ${s.reps[0]}–${s.reps[1]}</div>
+      </div>`;
+    }).join('');
+    tvOverlay = el(`
+      <div id="tv-mode">
+        <div class="tv-top">
+          <button class="tv-exit">✕</button>
+          <div class="tv-title">DAY ${selectedDay} · ${esc(day.title).toUpperCase()}</div>
+          <div class="tv-round">${weekLabel}</div>
+        </div>
+        <div class="tv-board">
+          <div class="tv-warm">🔥 ${esc(day.warmup)}</div>
+          ${rows}
+        </div>
+        <div class="tv-bottom">
+          <div class="prog-track"><div class="prog-fill" id="tv-fill"></div></div>
+          <span class="tv-sess" id="tv-sess"></span>
+        </div>
+      </div>`);
+  }
+
+  tvOverlay.querySelector('.tv-exit').onclick = exitTV;
+  document.body.appendChild(tvOverlay);
+  tvTicker = setInterval(updateTv, 300);
+  updateTv();
+}
+
+function exitTV() {
+  if (tvTicker) { clearInterval(tvTicker); tvTicker = null; }
+  if (tvOverlay) { tvOverlay.remove(); tvOverlay = null; }
+  if (!sessionLog()) keepAwake(false); else keepAwake(true);
+}
+
+function updateTv() {
+  if (!tvOverlay) return;
+  const sess = sessionLog();
+  const sessEl = tvOverlay.querySelector('#tv-sess');
+  if (sessEl) sessEl.textContent = sess ? '⏱ ' + fmtElapsed(Date.now() - sess.startedAt) : '';
+
+  if (selectedDay !== 'C') {
+    // strength board: progress = sets checked (mirrors the phone UI underneath)
+    const checks = document.querySelectorAll('.set-check').length;
+    const done = document.querySelectorAll('.set-check.done').length;
+    const fill = tvOverlay.querySelector('#tv-fill');
+    if (fill) fill.style.width = (checks ? Math.round(done / checks * 100) : 0) + '%';
+    return;
+  }
+
+  const live = window.circuitLive;
+  if (!live) return;
+  const phaseEl = tvOverlay.querySelector('#tv-phase');
+  const labels = { prep: 'GET READY', work: 'WORK', rest: 'REST', done: 'DONE 🎉' };
+  phaseEl.textContent = labels[live.phase] || 'READY';
+  phaseEl.className = 'tv-phase ' + (live.phase === 'work' || live.phase === 'done' ? 'work' : live.phase === 'rest' ? 'rest' : '');
+  tvOverlay.querySelector('#tv-clock').textContent = live.phase === 'done' ? '✓' : live.left;
+  tvOverlay.querySelector('#tv-round').textContent = live.phase === 'done' ? 'ALL ROUNDS DONE' : `ROUND ${live.round}/${live.rounds}`;
+  tvOverlay.querySelector('#tv-now').textContent = live.phase === 'done' ? 'Exit TV mode and hit Finish workout' : (live.phase === 'prep' ? 'First up: ' : 'NOW: ') + live.curName;
+  tvOverlay.querySelector('#tv-next').textContent = live.nextName && live.phase !== 'done' ? 'NEXT: ' + live.nextName : '';
+  tvOverlay.querySelector('#tv-fill').style.width = Math.round(live.workDone / live.totalWork * 100) + '%';
+  const sb = tvOverlay.querySelector('#tv-start');
+  if (sb) {
+    if (live.phase === 'done') sb.style.display = 'none';
+    else sb.textContent = live.running ? '⏸ Pause' : (live.phase === 'prep' && !live.workDone ? '▶ Start circuit' : '▶ Resume');
+  }
+}
 
 // ----- TODAY -----
 function renderToday() {
@@ -245,6 +354,10 @@ function renderToday() {
       v.appendChild(el(`<div class="card" style="border-color:var(--warn)"><h3>⚡ Bare minimum mode</h3><div class="muted small">${selectedDay === 'C' ? 'Two rounds instead of three, no finisher. In and out.' : 'Anchor lifts only, 3 sets each, keep rests ~90s. Done in ~20.'} This still counts as a full workout for the week — a short one beats a skipped one, every time.</div></div>`));
     }
   }
+
+  const tv = el('<button class="btn secondary" style="margin-bottom:12px">📺 TV mode — big screen for mirroring</button>');
+  tv.onclick = enterTV;
+  v.appendChild(tv);
 
   if (selectedDay === 'C') renderCircuitDay(v, day, status);
   else renderStrengthDay(v, day, status);
@@ -656,6 +769,22 @@ function wireCircuitTimer(timerEl, fmt, stations, listCard) {
     circuitProgress = workDone / totalWork;
     updateProgress();
   }
+  // publish live state for the TV-mode skin
+  function publish() {
+    const order = stationOrder(round);
+    const curEx = EXERCISES[stations[order[Math.min(station, fmt.stations) - 1]]];
+    let nextEx = null;
+    if (phase !== 'done') {
+      if (station < fmt.stations) nextEx = EXERCISES[stations[order[station]]];
+      else if (round < fmt.rounds) nextEx = EXERCISES[stations[stationOrder(round + 1)[0]]];
+    }
+    window.circuitLive = {
+      fmtName: fmt.name, round, rounds: fmt.rounds, station, stationsN: fmt.stations,
+      phase, left, running, workDone, totalWork,
+      curName: curEx.name.replace(' (circuit)', ''), curCue: curEx.cue,
+      nextName: nextEx ? nextEx.name.replace(' (circuit)', '') : null,
+    };
+  }
 
   function stationOrder(r) {
     // "The Gauntlet" reverses station order on even rounds
@@ -673,6 +802,7 @@ function wireCircuitTimer(timerEl, fmt, stations, listCard) {
     clockEl.textContent = left;
     phaseEl.textContent = phase === 'prep' ? 'GET READY' : phase === 'work' ? 'WORK' : 'REST';
     phaseEl.className = 'timer-phase ' + (phase === 'work' ? 'work' : phase === 'rest' ? 'rest' : '');
+    publish();
   }
   function advance() {
     if (phase === 'prep') { phase = 'work'; left = fmt.work; beep(880, 0.35); }
@@ -696,14 +826,16 @@ function wireCircuitTimer(timerEl, fmt, stations, listCard) {
     beep(880, 0.3); setTimeout(() => beep(1100, 0.3), 350); setTimeout(() => beep(1320, 0.5), 700);
     if (navigator.vibrate) navigator.vibrate([150, 80, 150, 80, 300]);
     listCard.querySelectorAll('.station').forEach(s => s.classList.remove('current'));
-    keepAwake(false);
+    if (!sessionLog()) keepAwake(false);
     startBtn.style.display = 'none';
+    publish();
   }
   startBtn.onclick = () => {
     if (running) { // pause
       clearInterval(iv); running = false;
       startBtn.textContent = '▶ Resume';
-      keepAwake(false);
+      if (!sessionLog()) keepAwake(false);
+      publish();
       return;
     }
     running = true;
@@ -712,6 +844,7 @@ function wireCircuitTimer(timerEl, fmt, stations, listCard) {
     keepAwake(true);
     if (!sessionLog()) startWorkoutSession(false); // starting the circuit starts the workout clock
     if (phase === 'prep') { highlight(); tickUI(); }
+    publish();
     beep(660, 0.15);
     iv = setInterval(() => {
       left--;
@@ -729,8 +862,10 @@ function wireCircuitTimer(timerEl, fmt, stations, listCard) {
     clockEl.textContent = fmt.work;
     subEl.textContent = `Round 1 of ${fmt.rounds} · Station 1 of ${fmt.stations}`;
     listCard.querySelectorAll('.station').forEach(s => s.classList.remove('current'));
-    keepAwake(false);
+    if (!sessionLog()) keepAwake(false);
+    publish();
   };
+  publish();
 }
 
 // ----- WEEK -----
