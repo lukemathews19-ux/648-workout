@@ -763,7 +763,7 @@ function renderSettings() {
     const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'iron-together-backup-' + todayISO() + '.json';
+    a.download = '648-workout-backup-' + todayISO() + '.json';
     a.click();
   };
   card.querySelector('#imp').onclick = () => {
@@ -798,7 +798,7 @@ function renderSettings() {
       </div>
     </div>`));
 
-  v.appendChild(el(`<div class="card"><div class="muted small">Iron Together v1 · data lives on this phone only — use Export now and then for a backup. Built with 💪 by Claude for Luke &amp; Kristen.</div></div>`));
+  v.appendChild(el(`<div class="card"><div class="muted small">648 Workout · data lives on this phone only — use Export now and then for a backup. Built with 💪 by Claude for Luke &amp; Kristen.</div></div>`));
   main.appendChild(v);
 }
 

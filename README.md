@@ -1,4 +1,4 @@
-# Iron Together 🏋️
+# 648 Workout 🏋️
 
 Luke & Kristen's home-gym lifting program and tracker. No accounts, no subscriptions, no server — a small web app that lives on your phones.
 
@@ -19,7 +19,7 @@ Each phone stores its own logs (in the browser's local storage). The weekly work
 
 ## Getting it on your phones
 
-**Live at: https://lukemathews19-ux.github.io/iron-together/**
+**Live at: https://lukemathews19-ux.github.io/648-workout/**
 
 1. Open that link on each phone.
 2. **iPhone:** Share button → *Add to Home Screen*. It installs like a real app, works offline, full screen.
