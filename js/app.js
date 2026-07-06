@@ -16,6 +16,8 @@ function save() { localStorage.setItem(STORE_KEY, JSON.stringify(store)); }
 let user = store.settings.defaultUser || 'luke';
 let currentView = 'today';
 let selectedDay = null;   // 'A' | 'B' | 'C'
+let shortMode = false;    // ⚡ 20-minute version of today's workout
+let cardio = { mode: 'any', dur: 20, shuffle: 0, open: false };
 const todayISO = () => {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -38,6 +40,10 @@ function toast(msg, ms = 2600) {
 function fmtDate(iso) {
   const [y, m, d] = iso.split('-').map(Number);
   return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+function weekKeyOfIso(iso) {
+  const [y, m, d] = iso.split('#')[0].split('-').map(Number);
+  return weekKey(new Date(y, m - 1, d));
 }
 
 // this week's logs for a user → { A: iso|null, B: ..., C: ... }
@@ -123,6 +129,8 @@ function renderToday() {
   const day = plan.days[selectedDay];
   const v = el('<div class="view active" id="view-today"></div>');
 
+  renderRecap(v);
+
   const doneCount = ['A', 'B', 'C'].filter(d => status[d]).length;
   v.appendChild(el(`
     <div class="week-banner">
@@ -137,7 +145,7 @@ function renderToday() {
   for (const d of ['A', 'B', 'C']) {
     const t = el(`<div class="day-tab ${d === selectedDay ? 'selected' : ''} ${status[d] ? 'done' : ''}">
       <div class="d-label">Day ${d}</div><div class="d-sub">${esc(plan.days[d].title)}</div></div>`);
-    t.onclick = () => { selectedDay = d; render(); };
+    t.onclick = () => { selectedDay = d; shortMode = false; render(); };
     tabs.appendChild(t);
   }
   v.appendChild(tabs);
@@ -157,10 +165,135 @@ function renderToday() {
     v.appendChild(m);
   }
 
+  // ⚡ 20-minute escape hatch — some beats none
+  if (!status[selectedDay]) {
+    const sm = el(`<button class="btn secondary" style="margin-bottom:12px; ${shortMode ? 'border-color:var(--warn);color:var(--warn)' : ''}">${shortMode ? '⚡ 20-min mode ON — tap for the full workout' : '⚡ Only got 20 minutes?'}</button>`);
+    sm.onclick = () => { shortMode = !shortMode; render(); };
+    v.appendChild(sm);
+    if (shortMode) {
+      v.appendChild(el(`<div class="card" style="border-color:var(--warn)"><h3>⚡ Bare minimum mode</h3><div class="muted small">${selectedDay === 'C' ? 'Two rounds instead of three, no finisher. In and out.' : 'Anchor lifts only, 3 sets each, keep rests ~90s. Done in ~20.'} This still counts as a full workout for the week — a short one beats a skipped one, every time.</div></div>`));
+    }
+  }
+
   if (selectedDay === 'C') renderCircuitDay(v, day, status);
   else renderStrengthDay(v, day, status);
 
+  renderCardioCard(v);
+
   main.appendChild(v);
+}
+
+// ----- Weekly recap card (shows once, first visit of a new week) -----
+function renderRecap(v) {
+  const cw = weekKey(new Date());
+  const lw = weekKey(new Date(Date.now() - 7 * 24 * 3600 * 1000));
+  store.settings.recapSeen = store.settings.recapSeen || {};
+  if (store.settings.recapSeen[user] === cw) return;
+
+  const logs = store.logs[user] || {};
+  const lifts = Object.values(logs).filter(l => l.week === lw && l.completedAt).length;
+  const cd = (store.cardio || {})[user] || {};
+  const cardioSessions = Object.entries(cd).filter(([iso]) => weekKeyOfIso(iso) === lw).flatMap(([, a]) => a);
+  const cardioMin = cardioSessions.reduce((n, s) => n + (s.m || 0), 0);
+  if (!lifts && !cardioSessions.length) return;
+
+  // PRs: heaviest weight last week vs best-ever before last week
+  const bestBefore = {}, bestLast = {};
+  for (const l of Object.values(logs)) {
+    if (!l.completedAt) continue;
+    for (const [ex, sets] of Object.entries(l.entries || {})) {
+      const w = Math.max(0, ...sets.map(s => s.w || 0));
+      if (!w) continue;
+      if (l.week === lw) bestLast[ex] = Math.max(bestLast[ex] || 0, w);
+      else if (l.week < lw) bestBefore[ex] = Math.max(bestBefore[ex] || 0, w);
+    }
+  }
+  const prs = Object.keys(bestLast)
+    .filter(ex => bestBefore[ex] && bestLast[ex] > bestBefore[ex])
+    .map(ex => `${EXERCISES[ex].name} ${bestLast[ex]} lb`)
+    .slice(0, 3);
+
+  const name = user === 'luke' ? 'Luke' : 'Kristen';
+  const st = streak(user);
+  const card = el(`
+    <div class="card celebrate" style="border-color:var(--accent)">
+      <h3>📬 ${name}'s week in review</h3>
+      <div class="muted small" style="line-height:1.6">
+        ${lifts >= 3 ? `<b style="color:var(--accent)">${lifts}/3 lifts — perfect week 🎉</b>` : `${lifts}/3 lifts${lifts ? ' — in the game' : ''}`}<br>
+        ${cardioSessions.length ? `🏃 ${cardioSessions.length} bonus cardio session${cardioSessions.length > 1 ? 's' : ''} (${cardioMin} min)<br>` : ''}
+        ${prs.length ? `🏆 New bests: ${prs.map(esc).join(' · ')}<br>` : ''}
+        ${st > 1 ? `🔥 ${st}-week streak — keep the chain alive` : ''}
+      </div>
+      <button class="btn secondary" style="margin-top:10px;padding:9px">Got it 👍</button>
+    </div>`);
+  card.querySelector('button').onclick = () => {
+    store.settings.recapSeen[user] = cw;
+    save();
+    card.remove();
+  };
+  v.appendChild(card);
+}
+
+// ----- Quick cardio generator -----
+function renderCardioCard(v) {
+  const iso = todayISO();
+  store.cardio = store.cardio || { luke: {}, kristen: {} };
+  const todayLogged = (store.cardio[user] || {})[iso] || [];
+
+  const card = el(`<div class="card" style="margin-top:16px"><h3>🏃 Quick cardio ${todayLogged.length ? '<span class="muted small">· ' + todayLogged.length + ' logged today ✓</span>' : ''}</h3></div>`);
+
+  if (!cardio.open) {
+    card.appendChild(el('<div class="muted small" style="margin-bottom:10px">Bonus, not homework — your running covers the base. Grab one when you want an engine hit.</div>'));
+    const open = el('<button class="btn secondary" style="padding:10px">Give me a workout</button>');
+    open.onclick = () => { cardio.open = true; cardio.shuffle = 0; render(); };
+    card.appendChild(open);
+    v.appendChild(card);
+    return;
+  }
+
+  const durs = [10, 15, 20, 30];
+  const durChips = el('<div class="chips"></div>');
+  durs.forEach(d => {
+    const c = el(`<button class="chip ${cardio.dur === d ? 'on' : ''}">${d} min</button>`);
+    c.onclick = () => { cardio.dur = d; cardio.shuffle = 0; render(); };
+    durChips.appendChild(c);
+  });
+  card.appendChild(durChips);
+
+  const modeChips = el('<div class="chips"></div>');
+  const modes = { any: { label: '✨ Surprise me' }, ...CARDIO_MODES };
+  for (const [key, m] of Object.entries(modes)) {
+    const c = el(`<button class="chip ${cardio.mode === key ? 'on' : ''}">${m.label}</button>`);
+    c.onclick = () => { cardio.mode = key; cardio.shuffle = 0; render(); };
+    modeChips.appendChild(c);
+  }
+  card.appendChild(modeChips);
+
+  const wo = genCardio(cardio.mode, cardio.dur, cardio.shuffle);
+  if (wo) {
+    card.appendChild(el(`
+      <div style="background:var(--card2);border-radius:10px;padding:12px;margin-top:10px">
+        <div style="font-weight:800">${esc(wo.title)} <span class="muted small">· ${wo.dur} min</span></div>
+        <div class="muted small" style="margin-top:6px;line-height:1.6">${wo.steps.map(esc).join('<br>')}</div>
+      </div>`));
+    const btns = el(`<div class="btn-row" style="margin-top:10px">
+      <button class="btn secondary" style="padding:10px">🔀 Another one</button>
+      <button class="btn" style="padding:10px">✓ Did it — log it</button>
+    </div>`);
+    btns.children[0].onclick = () => { cardio.shuffle++; render(); };
+    btns.children[1].onclick = () => {
+      store.cardio[user][iso] = store.cardio[user][iso] || [];
+      store.cardio[user][iso].push({ t: wo.title, m: wo.dur, mode: wo.mode });
+      save();
+      cardio.open = false;
+      toast(`🏃 ${wo.dur} min of cardio banked. Bonus points.`);
+      render();
+    };
+    card.appendChild(btns);
+  } else {
+    card.appendChild(el('<div class="muted small" style="margin-top:10px">Nothing at that combo — try another duration.</div>'));
+  }
+  v.appendChild(card);
 }
 
 function renderStrengthDay(v, day, status) {
@@ -169,13 +302,14 @@ function renderStrengthDay(v, day, status) {
   const entries = (existing && existing.day === selectedDay) ? existing.entries : {};
   const completed = !!(existing && existing.day === selectedDay && existing.completedAt);
 
-  const slots = day.slots.filter(s => user === 'luke' || !s.bonus);
+  let slots = day.slots.filter(s => user === 'luke' || !s.bonus);
+  if (shortMode) slots = slots.filter(s => s.anchor);
   const supersetNames = { 1: 'Superset — alternate these two, minimal rest', 2: 'Core superset — back and forth' };
   let lastSuperset = null;
 
   for (const slot of slots) {
     const ex = EXERCISES[slot.exId];
-    const nSets = slot.sets[user];
+    const nSets = shortMode ? Math.min(3, slot.sets[user]) : slot.sets[user];
     const saved = entries[slot.exId] || [];
     const last = lastSession(user, slot.exId);
     const sug = last ? suggestProgress(last.sets, slot.reps, slot.exId) : null;
@@ -267,7 +401,9 @@ function renderStrengthDay(v, day, status) {
 }
 
 function renderCircuitDay(v, day, status) {
-  const fmt = day.format;
+  const fmt = shortMode
+    ? { ...day.format, rounds: 2, desc: day.format.desc.replace(/3 rounds/, '2 rounds') }
+    : day.format;
   const existing = getDayLog(user, status[selectedDay] || todayISO());
   const completed = !!(existing && existing.day === 'C' && existing.completedAt);
 
@@ -289,7 +425,7 @@ function renderCircuitDay(v, day, status) {
   });
   v.appendChild(listCard);
 
-  if (user === 'luke') {
+  if (user === 'luke' && !shortMode) {
     const fex = EXERCISES[day.finisher.exId];
     v.appendChild(el(`<div class="card"><h3>🥵 Finisher: ${esc(fex.name)}</h3><div class="muted small">${esc(day.finisher.desc)}</div><div class="cue">💡 ${esc(fex.cue)}</div></div>`));
   }
@@ -320,6 +456,8 @@ function renderCircuitDay(v, day, status) {
 function finishWorkout(dayType) {
   const { log } = ensureDayLog(user, todayISO(), dayType);
   log.completedAt = new Date().toISOString();
+  if (shortMode) log.short = true;
+  shortMode = false;
   save();
   const status = weekStatus(user);
   const n = ['A', 'B', 'C'].filter(d => status[d]).length;
@@ -525,6 +663,15 @@ function renderProgress() {
       <div class="stat"><div class="stat-num">${completedLogs.length}</div><div class="stat-label">TOTAL WORKOUTS</div></div>
     </div>`));
 
+  // cardio (bonus work, tracked separately from the 3 lifting days)
+  const cd = (store.cardio || {})[user] || {};
+  const allCardio = Object.values(cd).flat();
+  if (allCardio.length) {
+    const weekCardio = Object.entries(cd).filter(([iso]) => weekKeyOfIso(iso) === weekKey(new Date())).flatMap(([, a]) => a);
+    const totalMin = allCardio.reduce((n, s) => n + (s.m || 0), 0);
+    v.appendChild(el(`<div class="card"><h3>🏃 Bonus cardio</h3><div class="muted small">${weekCardio.length ? weekCardio.length + ' session' + (weekCardio.length > 1 ? 's' : '') + ' this week · ' : ''}${allCardio.length} total session${allCardio.length > 1 ? 's' : ''} · ${totalMin} total minutes</div></div>`));
+  }
+
   // 8-week consistency bars
   const cons = el('<div class="card"><h3>Consistency — last 8 weeks</h3><div class="consistency"></div><div class="muted small" style="margin-top:6px">Green = hit all 3 workouts that week.</div></div>');
   const bars = cons.querySelector('.consistency');
@@ -656,8 +803,8 @@ function renderSettings() {
 }
 
 // ---------- Wire up ----------
-document.getElementById('u-luke').onclick = () => { user = 'luke'; selectedDay = null; render(); };
-document.getElementById('u-kristen').onclick = () => { user = 'kristen'; selectedDay = null; render(); };
+document.getElementById('u-luke').onclick = () => { user = 'luke'; selectedDay = null; shortMode = false; render(); };
+document.getElementById('u-kristen').onclick = () => { user = 'kristen'; selectedDay = null; shortMode = false; render(); };
 document.querySelectorAll('nav button').forEach(b => {
   b.onclick = () => { currentView = b.dataset.view; render(); };
 });
