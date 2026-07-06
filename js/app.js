@@ -18,6 +18,8 @@ let currentView = 'today';
 let selectedDay = null;   // 'A' | 'B' | 'C'
 let shortMode = false;    // ⚡ 20-minute version of today's workout
 let cardio = { mode: 'any', dur: 20, shuffle: 0, open: false };
+let sessTicker = null;    // interval updating the session clock
+let circuitProgress = 0;  // 0..1, fed by the circuit timer
 const todayISO = () => {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -117,7 +119,69 @@ function render() {
   else if (currentView === 'week') renderWeek();
   else if (currentView === 'progress') renderProgress();
   else renderSettings();
+  updateSessionBar();
 }
+
+// ----- Workout session: count-up timer + progress bar + screen wake lock -----
+function sessionLog() {
+  // a second same-day workout lives under 'YYYY-MM-DD#2' — check both
+  const base = todayISO();
+  for (const iso of [base, base + '#2']) {
+    const log = (store.logs[user] || {})[iso];
+    if (log && log.day === selectedDay && log.startedAt && !log.completedAt) return log;
+  }
+  return null;
+}
+function startWorkoutSession(rerender = true) {
+  const { log } = ensureDayLog(user, todayISO(), selectedDay);
+  if (!log.startedAt) { log.startedAt = Date.now(); save(); }
+  keepAwake(true);
+  if (rerender) render(); else updateSessionBar();
+}
+function fmtElapsed(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+function updateSessionBar() {
+  const bar = document.getElementById('session-bar');
+  const log = currentView === 'today' ? sessionLog() : null;
+  if (!log) {
+    bar.hidden = true;
+    document.body.classList.remove('with-session');
+    if (sessTicker) { clearInterval(sessTicker); sessTicker = null; }
+    return;
+  }
+  bar.hidden = false;
+  document.body.classList.add('with-session');
+  document.getElementById('sess-time').textContent = fmtElapsed(Date.now() - log.startedAt);
+  if (!sessTicker) {
+    sessTicker = setInterval(() => {
+      const l = currentView === 'today' ? sessionLog() : null;
+      if (l) document.getElementById('sess-time').textContent = fmtElapsed(Date.now() - l.startedAt);
+      else updateSessionBar();
+    }, 1000);
+  }
+  updateProgress();
+}
+function updateProgress() {
+  let frac;
+  if (selectedDay === 'C') {
+    frac = circuitProgress;
+  } else {
+    const checks = document.querySelectorAll('.set-check').length;
+    const done = document.querySelectorAll('.set-check.done').length;
+    frac = checks ? done / checks : 0;
+  }
+  const fill = document.getElementById('prog-fill');
+  if (!fill) return;
+  const pct = Math.round(frac * 100);
+  fill.style.width = pct + '%';
+  document.getElementById('prog-pct').textContent = pct + '%';
+}
+// iOS releases the wake lock when the app is backgrounded — grab it back
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && sessionLog()) keepAwake(true);
+});
 
 // ----- TODAY -----
 function renderToday() {
@@ -157,6 +221,13 @@ function renderToday() {
   }
 
   v.appendChild(el(`<div class="card"><h3>🔥 Warm-up (~4 min)</h3><div class="muted small">${esc(day.warmup)}</div></div>`));
+
+  if (!status[selectedDay] && !sessionLog()) {
+    const sb = el('<button class="btn" style="margin-bottom:12px">▶ Start workout</button>');
+    sb.onclick = () => startWorkoutSession();
+    v.appendChild(sb);
+    v.appendChild(el('<div class="muted small" style="text-align:center;margin:-6px 0 12px">Starts the clock and keeps your screen awake</div>'));
+  }
 
   const music = store.settings.playlist;
   if (music) {
@@ -373,6 +444,8 @@ function renderStrengthDay(v, day, status) {
           if (!r.value && !isNaN(parseInt(r.placeholder))) r.value = r.placeholder;
         }
         persist();
+        if (!sessionLog()) startWorkoutSession(false); // logging a set = you're clearly working out
+        updateProgress();
       });
       rows.push(row);
       setsWrap.appendChild(row);
@@ -456,17 +529,61 @@ function renderCircuitDay(v, day, status) {
 function finishWorkout(dayType) {
   const { log } = ensureDayLog(user, todayISO(), dayType);
   log.completedAt = new Date().toISOString();
+  if (log.startedAt) log.durationMin = Math.max(1, Math.round((Date.now() - log.startedAt) / 60000));
   if (shortMode) log.short = true;
   shortMode = false;
   save();
+  keepAwake(false);
+  if (navigator.vibrate) navigator.vibrate([80, 40, 80, 40, 200]);
+  beep(880, 0.25); setTimeout(() => beep(1100, 0.25), 280); setTimeout(() => beep(1320, 0.45), 560);
+  showCelebration(dayType, log);
+}
+
+const FINISH_LINES = [
+  'GREAT WORK TODAY!',
+  'THAT\'S HOW IT\'S DONE.',
+  'STRONGER THAN YESTERDAY.',
+  'YOU SHOWED UP. IT COUNTS.',
+  'ANOTHER BRICK LAID.',
+  'THE GYM DIDN\'T WIN. YOU DID.',
+];
+
+function showCelebration(dayType, log) {
   const status = weekStatus(user);
   const n = ['A', 'B', 'C'].filter(d => status[d]).length;
   const name = user === 'luke' ? 'Luke' : 'Kristen';
-  if (n >= 3) toast(`🎉 ${name}: that's 3 for 3 this week. Streak: ${streak(user)} week${streak(user) === 1 ? '' : 's'}!`);
-  else toast(`💪 Nice work, ${name}! ${n}/3 this week — ${3 - n} to go.`);
-  if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
-  selectedDay = null;
-  render();
+  const perfect = n >= 3;
+  const line = perfect ? 'PERFECT WEEK — 3 FOR 3! 🏆' : FINISH_LINES[new Date().getDate() % FINISH_LINES.length];
+  const setsDone = Object.values(log.entries || {}).flat().filter(s => s && (s.done || s.w || s.r)).length;
+
+  const stats = [];
+  if (log.durationMin) stats.push(`⏱ <b>${log.durationMin} min</b>`);
+  if (dayType === 'C') stats.push('🔄 Circuit crushed');
+  else if (setsDone) stats.push(`🏋️ <b>${setsDone}</b> sets logged`);
+  stats.push(perfect ? `🔥 Streak: <b>${streak(user)} week${streak(user) === 1 ? '' : 's'}</b>` : `📅 <b>${n}/3</b> this week — ${3 - n} to go`);
+
+  const ov = el(`
+    <div id="celebration">
+      <div class="c-emoji">${perfect ? '🏆' : '💪'}</div>
+      <h2>${line}</h2>
+      <div class="c-stats">Way to go, ${name}.<br>${stats.join(' &nbsp;·&nbsp; ')}</div>
+      <button class="btn">Done 🙌</button>
+    </div>`);
+  // confetti burst
+  const bits = ['🎉', '💚', '⭐', '🎊', '✨', '💪'];
+  for (let i = 0; i < 16; i++) {
+    const c = el(`<span class="confetti">${bits[i % bits.length]}</span>`);
+    c.style.left = ((i * 61) % 96) + 2 + '%';
+    c.style.animationDuration = (2.2 + (i * 37 % 17) / 10) + 's';
+    c.style.animationDelay = ((i * 23 % 9) / 10) + 's';
+    ov.appendChild(c);
+  }
+  ov.querySelector('.btn').onclick = () => {
+    ov.remove();
+    selectedDay = null;
+    render();
+  };
+  document.body.appendChild(ov);
 }
 
 // ----- Rest timer (per-exercise) -----
@@ -532,6 +649,13 @@ function wireCircuitTimer(timerEl, fmt, stations, listCard) {
   const resetBtn = timerEl.querySelector('#t-reset');
   let running = false, iv = null;
   let round = 1, station = 1, phase = 'prep', left = 10;
+  let workDone = 0;
+  const totalWork = fmt.rounds * fmt.stations;
+  circuitProgress = 0;
+  function reportProgress() {
+    circuitProgress = workDone / totalWork;
+    updateProgress();
+  }
 
   function stationOrder(r) {
     // "The Gauntlet" reverses station order on even rounds
@@ -553,6 +677,7 @@ function wireCircuitTimer(timerEl, fmt, stations, listCard) {
   function advance() {
     if (phase === 'prep') { phase = 'work'; left = fmt.work; beep(880, 0.35); }
     else if (phase === 'work') {
+      workDone++; reportProgress();
       if (station === fmt.stations && round === fmt.rounds) return finish();
       phase = 'rest'; left = fmt.rest; beep(440, 0.5);
     } else {
@@ -585,6 +710,7 @@ function wireCircuitTimer(timerEl, fmt, stations, listCard) {
     startBtn.textContent = '⏸ Pause';
     resetBtn.style.display = '';
     keepAwake(true);
+    if (!sessionLog()) startWorkoutSession(false); // starting the circuit starts the workout clock
     if (phase === 'prep') { highlight(); tickUI(); }
     beep(660, 0.15);
     iv = setInterval(() => {
@@ -597,6 +723,7 @@ function wireCircuitTimer(timerEl, fmt, stations, listCard) {
   resetBtn.onclick = () => {
     clearInterval(iv); running = false;
     round = 1; station = 1; phase = 'prep'; left = 10;
+    workDone = 0; reportProgress();
     startBtn.style.display = ''; startBtn.textContent = '▶ Start circuit';
     phaseEl.textContent = 'READY'; phaseEl.className = 'timer-phase';
     clockEl.textContent = fmt.work;

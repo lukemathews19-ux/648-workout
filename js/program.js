@@ -43,7 +43,7 @@ const BLOCKS = [
   },
   {
     name: 'Strength',
-    focus: 'Heaviest block of the cycle. Rest a full 2 minutes between anchor sets.',
+    focus: 'Heaviest block of the cycle. Take the full 90 seconds between anchor sets.',
     anchors: { squat: 'bb_back_squat', hinge: 'bb_hip_thrust', hpush: 'db_incline_bench', pull: 'pullup' },
     anchorSets: { luke: 4, kristen: 3 },
   },
@@ -91,8 +91,10 @@ const CIRCUIT_FORMATS = [
 
 const WARMUPS = [
   '3 min easy bike or row, then 10 bodyweight squats + 10 band pull-aparts',
+  'Driveway down & back at a brisk pace (that\'s ⅓ mile), then 10 bodyweight squats + 10 arm circles each way',
   '3 min jump rope (break as needed), then 10 walking lunges + 10 arm circles each way',
   '3 min brisk incline treadmill walk, then 10 glute bridges + 10 push-ups to a comfortable depth',
+  'Driveway down & back — out easy, back brisk — then 10 glute bridges + 10 band pull-aparts',
   '2 min row + 1 trip down the agility ladder x2, then 10 KB deadlifts with a light bell',
 ];
 
@@ -118,8 +120,8 @@ function buildWeek(date) {
     type: 'A', title: 'Lower Body + Core',
     warmup: WARMUPS[((week % WARMUPS.length) + WARMUPS.length) % WARMUPS.length],
     slots: [
-      { exId: block.anchors.squat, sets: aSets, reps: EXERCISES[block.anchors.squat].reps, anchor: true, rest: 120 },
-      { exId: block.anchors.hinge, sets: aSets, reps: EXERCISES[block.anchors.hinge].reps, anchor: true, rest: 120 },
+      { exId: block.anchors.squat, sets: aSets, reps: EXERCISES[block.anchors.squat].reps, anchor: true, rest: 90 },
+      { exId: block.anchors.hinge, sets: aSets, reps: EXERCISES[block.anchors.hinge].reps, anchor: true, rest: 90 },
       { exId: pick('lunge', week, 0), sets: { luke: 3, kristen: 2 }, reps: null, superset: 1, rest: 60 },
       { exId: pick('glute', week, 2), sets: { luke: 3, kristen: 2 }, reps: null, superset: 1, rest: 60 },
       { exId: pick('coreA', week, 0), sets: { luke: 3, kristen: 2 }, reps: null, superset: 2, rest: 45 },
@@ -135,8 +137,8 @@ function buildWeek(date) {
     type: 'B', title: 'Upper Body',
     warmup: WARMUPS[((week + 1) % WARMUPS.length + WARMUPS.length) % WARMUPS.length],
     slots: [
-      { exId: block.anchors.hpush, sets: aSets, reps: EXERCISES[block.anchors.hpush].reps, anchor: true, rest: 120 },
-      { exId: block.anchors.pull, sets: aSets, reps: EXERCISES[block.anchors.pull].reps, anchor: true, rest: 120 },
+      { exId: block.anchors.hpush, sets: aSets, reps: EXERCISES[block.anchors.hpush].reps, anchor: true, rest: 90 },
+      { exId: block.anchors.pull, sets: aSets, reps: EXERCISES[block.anchors.pull].reps, anchor: true, rest: 90 },
       { exId: pick('push2', week, 0), sets: { luke: 3, kristen: 2 }, reps: null, superset: 1, rest: 60 },
       { exId: pick('pull2', week, 1), sets: { luke: 3, kristen: 2 }, reps: null, superset: 1, rest: 60 },
       { exId: pick('biceps', week, 0), sets: { luke: 3, kristen: 2 }, reps: null, superset: 2, rest: 45 },

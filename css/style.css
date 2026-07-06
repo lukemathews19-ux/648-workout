@@ -199,6 +199,42 @@ main { padding: 16px; max-width: 640px; margin: 0 auto; }
 }
 .chip.on { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
 
+/* ---------- Session bar (workout timer + progress) ---------- */
+#session-bar {
+  position: fixed; left: 0; right: 0; z-index: 29;
+  bottom: calc(64px + env(safe-area-inset-bottom));
+  background: rgba(14,17,22,.96); backdrop-filter: blur(10px);
+  border-top: 1px solid var(--line);
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 16px;
+}
+body.with-session { padding-bottom: 128px; }
+#sess-time { font-variant-numeric: tabular-nums; font-weight: 800; font-size: .9rem; color: var(--accent); min-width: 44px; }
+.prog-track { flex: 1; height: 9px; border-radius: 99px; background: var(--card2); border: 1px solid var(--line); overflow: hidden; }
+.prog-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 99px; transition: width .4s ease; }
+#prog-pct { font-size: .75rem; color: var(--muted); font-weight: 700; min-width: 34px; text-align: right; }
+
+/* ---------- Celebration overlay ---------- */
+#celebration {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(14,17,22,.97);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 28px; overflow: hidden;
+  animation: fadein .3s ease;
+}
+#celebration .c-emoji { font-size: 4.2rem; animation: pop .5s ease; }
+#celebration h2 { font-size: 1.7rem; font-weight: 800; margin: 14px 0 8px; }
+#celebration .c-stats { color: var(--muted); font-size: .95rem; line-height: 1.7; margin-bottom: 22px; }
+#celebration .c-stats b { color: var(--text); }
+#celebration .btn { max-width: 280px; }
+.confetti {
+  position: absolute; top: -8%; font-size: 1.5rem; pointer-events: none;
+  animation: confetti-fall linear forwards;
+}
+@keyframes confetti-fall {
+  to { transform: translateY(115vh) rotate(680deg); opacity: .7; }
+}
+
 /* ---------- Bottom nav ---------- */
 nav {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
