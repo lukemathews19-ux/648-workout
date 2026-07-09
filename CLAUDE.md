@@ -14,11 +14,12 @@ Luke & Kristen's home-gym workout PWA (648 = their house address). Luke is not a
 
 - **No build step, no framework, no server, no accounts.** Plain HTML/CSS/JS. Each phone stores its own logs in `localStorage` (key `iron_together_v1` — historical name, kept so data survives; never rename it).
 - **Workouts are generated deterministically from the calendar date** (`js/program.js`), so both phones show identical workouts with zero syncing. `PROGRAM_EPOCH` = Monday 2026-07-06, their real start date = Week 1, Foundation block. Don't move it — it would silently reshuffle everyone's current week.
-- Files: `js/exercises.js` (exercise DB + form cues), `js/program.js` (blocks/rotation/progression), `js/cardio.js` (cardio generator), `js/app.js` (all UI). New JS files must be added to `index.html` AND the `ASSETS` list in `sw.js`.
+- Files: `js/exercises.js` (exercise DB + form cues), `js/anims.js` (animated silhouette demo loops for circuit exercises — keyframe poses tweened by a tiny SVG engine; every circuit-pool exercise needs an entry), `js/program.js` (blocks/rotation/progression), `js/cardio.js` (cardio generator), `js/app.js` (all UI). New JS files must be added to `index.html` AND the `ASSETS` list in `sw.js`.
 
 ## Program design (the coaching logic)
 
 - 3 days/week, flexible days: A = Lower + Core, B = Upper, C = F45-style circuit (they love F45). Core lands 2x/week (A + C).
+- Day C supports 1-3 people (F45-style staggered stations: everyone rotates on the same beep, offset by one station so machines never double-book). 60s skippable water break between rounds. TV mode shows one color-coded panel per person with animated demos. Audio cues are deliberately distinct: short chirp = 3-2-1, rising two-tone = GO, falling = rest, chime = round break, fanfare = circuit done.
 - 4-week blocks; **anchor lifts stay fixed within a block** (progressive overload), accessories rotate weekly (variety). Week 4 = deload. Four blocks cycle: Foundation → Build → Strength → Athletic.
 - Time caps: **Luke ≤40 min** (bonus slots, finisher), **Kristen ≤30 min** (fewer sets, skips `bonus: true` slots). ⚡ 20-min bare-minimum mode still counts as a full workout — that's intentional psychology, keep it.
 - Cardio is **bonus-only, never programmed**: Luke runs with a friend 2-3x/week (5k-ish + a hill day). The cardio generator (10/15/20/30 min; bike/rower/treadmill/rope+ladder/pool/hoops/mix) must never count toward or against the 3 lifting days.

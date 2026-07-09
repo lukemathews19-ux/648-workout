@@ -201,14 +201,10 @@ function enterTV() {
           <div class="tv-title">DAY C · ${esc(day.format.name).toUpperCase()}</div>
           <div class="tv-round" id="tv-round"></div>
         </div>
-        <div class="tv-center">
-          <div class="tv-phase" id="tv-phase">READY</div>
-          <div class="tv-clock" id="tv-clock">${day.format.work}</div>
-          <div class="tv-now" id="tv-now"></div>
-          <div class="tv-next" id="tv-next"></div>
-        </div>
+        <div class="tv-cbody" id="tv-cbody"></div>
         <div class="tv-bottom">
           <button class="btn tv-startbtn" id="tv-start">▶ Start circuit</button>
+          <button class="btn secondary tv-startbtn" id="tv-skip" style="display:none">⏭ Skip break</button>
           <div class="prog-track"><div class="prog-fill" id="tv-fill"></div></div>
           <span class="tv-sess" id="tv-sess"></span>
         </div>
@@ -217,6 +213,11 @@ function enterTV() {
     tvOverlay.querySelector('#tv-start').onclick = () => {
       const btn = document.getElementById('t-start');
       if (btn && btn.style.display !== 'none') btn.click();
+      updateTv();
+    };
+    tvOverlay.querySelector('#tv-skip').onclick = () => {
+      const btn = document.getElementById('t-skip');
+      if (btn) btn.click();
       updateTv();
     };
   } else {
@@ -259,6 +260,46 @@ function exitTV() {
   if (!sessionLog()) keepAwake(false); else keepAwake(true);
 }
 
+// (Re)build the circuit body: one big clock + demo for solo, or a shared
+// clock strip over one panel per person when 2-3 are working out.
+function buildTvCBody() {
+  const body = tvOverlay && tvOverlay.querySelector('#tv-cbody');
+  if (!body) return;
+  const live = window.circuitLive;
+  const n = live && live.people ? live.people.length : 1;
+  if (n === 1) {
+    body.innerHTML = `
+      <div class="tv-solo">
+        <div class="tv-solo-left">
+          <div class="tv-phase" id="tv-phase">READY</div>
+          <div class="tv-clock" id="tv-clock"></div>
+          <div class="tv-now" id="tv-now"></div>
+          <div class="tv-next" id="tv-next"></div>
+        </div>
+        <div class="tv-anim tv-solo-anim"></div>
+      </div>`;
+  } else {
+    body.innerHTML = `
+      <div class="tv-clockstrip">
+        <div class="tv-phase" id="tv-phase">READY</div>
+        <div class="tv-clock" id="tv-clock"></div>
+      </div>
+      <div class="tv-people">
+        ${live.people.map(p => `
+          <div class="tv-panel" style="--pc:${p.color}">
+            <div class="tv-anim"></div>
+            <div class="tv-ptext">
+              <div class="tv-pname">${esc(p.name.toUpperCase())}</div>
+              <div class="tv-ptag"></div>
+              <div class="tv-pex"></div>
+              <div class="tv-pnext"></div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+  }
+  body.dataset.people = n;
+}
+
 function updateTv() {
   if (!tvOverlay) return;
   const sess = sessionLog();
@@ -276,20 +317,62 @@ function updateTv() {
 
   const live = window.circuitLive;
   if (!live) return;
+  const body = tvOverlay.querySelector('#tv-cbody');
+  if (+body.dataset.people !== (live.people ? live.people.length : 1)) buildTvCBody();
+
   const phaseEl = tvOverlay.querySelector('#tv-phase');
-  const labels = { prep: 'GET READY', work: 'WORK', rest: 'REST', done: 'DONE 🎉' };
+  const labels = { prep: 'GET READY', work: 'WORK', rest: 'REST', break: 'ROUND BREAK 💧', done: 'DONE 🎉' };
   phaseEl.textContent = labels[live.phase] || 'READY';
-  phaseEl.className = 'tv-phase ' + (live.phase === 'work' || live.phase === 'done' ? 'work' : live.phase === 'rest' ? 'rest' : '');
+  phaseEl.className = 'tv-phase ' + (live.phase === 'work' || live.phase === 'done' ? 'work' : live.phase === 'rest' ? 'rest' : live.phase === 'break' ? 'break' : '');
   tvOverlay.querySelector('#tv-clock').textContent = live.phase === 'done' ? '✓' : live.left;
-  tvOverlay.querySelector('#tv-round').textContent = live.phase === 'done' ? 'ALL ROUNDS DONE' : `ROUND ${live.round}/${live.rounds}`;
-  tvOverlay.querySelector('#tv-now').textContent = live.phase === 'done' ? 'Exit TV mode and hit Finish workout' : (live.phase === 'prep' ? 'First up: ' : 'NOW: ') + live.curName;
-  tvOverlay.querySelector('#tv-next').textContent = live.nextName && live.phase !== 'done' ? 'NEXT: ' + live.nextName : '';
+  tvOverlay.querySelector('#tv-round').textContent = live.phase === 'done' ? 'ALL ROUNDS DONE'
+    : live.phase === 'break' ? `ROUND ${live.round} DONE · ${live.round + 1} UP NEXT`
+    : `ROUND ${live.round}/${live.rounds}`;
+
+  // during rest/break show where to go next, not what just finished
+  const showNext = live.phase === 'rest' || live.phase === 'break';
+  if (live.people.length === 1) {
+    const nowEl = tvOverlay.querySelector('#tv-now'), nextEl = tvOverlay.querySelector('#tv-next');
+    if (live.phase === 'done') {
+      nowEl.textContent = 'Exit TV mode and hit Finish workout';
+      nextEl.textContent = '';
+    } else if (live.phase === 'break') {
+      nowEl.textContent = '💧 Grab water!';
+      nextEl.textContent = live.nextName ? 'NEXT: ' + live.nextName : '';
+    } else {
+      nowEl.textContent = (live.phase === 'prep' ? 'First up: ' : 'NOW: ') + live.curName;
+      nextEl.textContent = live.nextName ? 'NEXT: ' + live.nextName : '';
+    }
+    setAnim(tvOverlay.querySelector('.tv-solo-anim'), live.phase === 'done' ? null : (showNext && live.nextId ? live.nextId : live.curId));
+  } else {
+    tvOverlay.querySelectorAll('.tv-panel').forEach((panel, i) => {
+      const p = live.people[i];
+      if (!p) return;
+      const animBox = panel.querySelector('.tv-anim');
+      const tag = panel.querySelector('.tv-ptag'), pex = panel.querySelector('.tv-pex'), pnext = panel.querySelector('.tv-pnext');
+      if (live.phase === 'done') {
+        setAnim(animBox, null);
+        if (!animBox.querySelector('.tv-panel-done')) animBox.innerHTML = '<div class="tv-panel-done">🎉</div>';
+        tag.textContent = '';
+        pex.textContent = 'DONE!';
+        pnext.textContent = '';
+        return;
+      }
+      const useNext = showNext && p.nextId;
+      setAnim(animBox, useNext ? p.nextId : p.curId);
+      tag.textContent = live.phase === 'prep' ? 'FIRST UP' : useNext ? 'NEXT UP' : 'NOW';
+      pex.textContent = useNext ? p.nextName : p.curName;
+      pnext.textContent = !useNext && p.nextName ? 'THEN: ' + p.nextName : (live.phase === 'break' ? '💧 water!' : '');
+    });
+  }
   tvOverlay.querySelector('#tv-fill').style.width = Math.round(live.workDone / live.totalWork * 100) + '%';
   const sb = tvOverlay.querySelector('#tv-start');
   if (sb) {
     if (live.phase === 'done') sb.style.display = 'none';
     else sb.textContent = live.running ? '⏸ Pause' : (live.phase === 'prep' && !live.workDone ? '▶ Start circuit' : '▶ Resume');
   }
+  const sk = tvOverlay.querySelector('#tv-skip');
+  if (sk) sk.style.display = live.phase === 'break' ? '' : 'none';
 }
 
 // ----- TODAY -----
@@ -586,6 +669,34 @@ function renderStrengthDay(v, day, status) {
   v.appendChild(done);
 }
 
+// ----- Multi-person circuit (F45-style staggered stations) -----
+// Everyone rotates on the same beep, offset by one station, so two people
+// never need the same machine at the same time.
+const NAME_CYCLE = ['Luke', 'Kristen', 'Guest 1', 'Guest 2'];
+const PERSON_COLORS = { 'Luke': '#60a5fa', 'Kristen': '#f472b6', 'Guest 1': '#fbbf24', 'Guest 2': '#a78bfa' };
+function circuitCfg() {
+  store.settings.circuit = store.settings.circuit || { people: 1, names: [] };
+  const cfg = store.settings.circuit;
+  cfg.people = Math.min(3, Math.max(1, cfg.people || 1));
+  const me = user === 'luke' ? 'Luke' : 'Kristen';
+  const defaults = [me, me === 'Luke' ? 'Kristen' : 'Luke', 'Guest 1'];
+  const names = [];
+  for (let i = 0; i < cfg.people; i++) names.push(cfg.names[i] || defaults[i]);
+  return { people: cfg.people, names };
+}
+
+// ----- Animated demo mounting (remounts only when the exercise changes) -----
+const animMounts = new Map(); // element -> handle from mountAnim
+function setAnim(elm, exId) {
+  if (!elm) return;
+  const cur = animMounts.get(elm);
+  if (cur && cur.exId === exId) return;
+  if (cur) cur.stop();
+  elm.innerHTML = '';
+  animMounts.set(elm, exId ? mountAnim(elm, exId) : { exId: null, stop() {} });
+  for (const [k, h] of animMounts) if (k !== elm && !k.isConnected) { h.stop(); animMounts.delete(k); }
+}
+
 function renderCircuitDay(v, day, status) {
   const fmt = shortMode
     ? { ...day.format, rounds: 2, desc: day.format.desc.replace(/3 rounds/, '2 rounds') }
@@ -594,6 +705,45 @@ function renderCircuitDay(v, day, status) {
   const completed = !!(existing && existing.day === 'C' && existing.completedAt);
 
   v.appendChild(el(`<div class="card"><h3>🔄 ${esc(fmt.name)}</h3><div class="muted small">${esc(fmt.desc)}. Move station to station — write nothing down, just work. ${user === 'kristen' ? 'Kristen: you\'re done after the 3 rounds.' : ''}</div></div>`));
+
+  // 👥 People picker — staggered stations so nobody needs the same machine
+  const pplCard = el('<div class="card"><h3>👥 Who\'s doing the circuit?</h3><div class="pp-body"></div></div>');
+  const ppBody = pplCard.querySelector('.pp-body');
+  function renderPicker() {
+    const cfg = circuitCfg();
+    ppBody.innerHTML = '';
+    const counts = el('<div class="chips"></div>');
+    [1, 2, 3].forEach(n => {
+      const c = el(`<button class="chip ${cfg.people === n ? 'on' : ''}">${n === 1 ? 'Just me' : n + ' people'}</button>`);
+      c.onclick = () => {
+        store.settings.circuit.people = n;
+        save();
+        renderPicker();
+        if (window.circuitRefresh) window.circuitRefresh();
+      };
+      counts.appendChild(c);
+    });
+    ppBody.appendChild(counts);
+    if (cfg.people > 1) {
+      const names = el('<div class="chips"></div>');
+      cfg.names.forEach((nm, i) => {
+        const color = PERSON_COLORS[nm] || 'var(--accent)';
+        const c = el(`<button class="chip" style="border-color:${color};color:${color}">${esc(nm)}</button>`);
+        c.onclick = () => {
+          store.settings.circuit.names = circuitCfg().names.slice();
+          store.settings.circuit.names[i] = NAME_CYCLE[(NAME_CYCLE.indexOf(nm) + 1) % NAME_CYCLE.length];
+          save();
+          renderPicker();
+          if (window.circuitRefresh) window.circuitRefresh();
+        };
+        names.appendChild(c);
+      });
+      ppBody.appendChild(names);
+      ppBody.appendChild(el('<div class="muted small" style="margin-top:8px">F45 style: everyone starts one station apart and rotates on the same beep — no fighting over the rower. Tap a name to change it. 📺 TV mode shows a panel for each person.</div>'));
+    }
+  }
+  renderPicker();
+  v.appendChild(pplCard);
 
   const listCard = el('<div class="card"><h3>Stations</h3><div class="station-list"></div></div>');
   const list = listCard.querySelector('.station-list');
@@ -606,6 +756,7 @@ function renderCircuitDay(v, day, status) {
           <div class="st-name">${esc(ex.name)}</div>
           <div class="st-detail">${esc(ex.cue)}</div>
         </div>
+        <div class="st-who"></div>
         <a class="demo-link" href="${demoUrl(exId)}" target="_blank">🎬</a>
       </div>`));
   });
@@ -617,16 +768,19 @@ function renderCircuitDay(v, day, status) {
   }
 
   // Timer card
-  const totalPerRound = fmt.stations * (fmt.work + fmt.rest);
-  const totalMin = Math.round(fmt.rounds * totalPerRound / 60);
+  const breakLen = fmt.roundBreak || 60;
+  const totalSec = fmt.rounds * fmt.stations * fmt.work + fmt.rounds * (fmt.stations - 1) * fmt.rest + (fmt.rounds - 1) * breakLen;
+  const totalMin = Math.round(totalSec / 60);
   const timer = el(`
     <div class="card">
       <div class="timer-wrap">
         <div class="timer-phase" id="t-phase">READY · ~${totalMin} MIN</div>
         <div class="timer-clock" id="t-clock">${fmt.work}</div>
         <div class="timer-sub" id="t-sub">Round 1 of ${fmt.rounds} · Station 1 of ${fmt.stations}</div>
+        <div id="t-anim"></div>
         <div class="btn-row">
           <button class="btn" id="t-start">▶ Start circuit</button>
+          <button class="btn secondary" id="t-skip" style="display:none">⏭ Skip break</button>
           <button class="btn secondary" id="t-reset" style="display:none">↺ Reset</button>
         </div>
       </div>
@@ -648,7 +802,9 @@ function finishWorkout(dayType) {
   save();
   keepAwake(false);
   if (navigator.vibrate) navigator.vibrate([80, 40, 80, 40, 200]);
+  // distinct end-of-workout fanfare — longer and higher than any interval cue
   beep(880, 0.25); setTimeout(() => beep(1100, 0.25), 280); setTimeout(() => beep(1320, 0.45), 560);
+  setTimeout(() => beep(1760, 0.8), 950);
   showCelebration(dayType, log);
 }
 
@@ -746,6 +902,21 @@ function beep(freq, dur) {
   } catch (err) { /* no audio available */ }
 }
 
+// Distinct audio cues so your ears know what happened without looking:
+// the 3-2-1 countdown is a short chirp; the zero-mark is a two-tone pattern
+// (rising = GO, falling = rest, chime = round break) and the end of the whole
+// circuit gets its own victory fanfare.
+const CUE = {
+  count() { beep(660, 0.12); },
+  work() { beep(880, 0.15); setTimeout(() => beep(1245, 0.3), 150); },
+  rest() { beep(587, 0.15); setTimeout(() => beep(392, 0.35), 150); },
+  brk() { beep(523, 0.18); setTimeout(() => beep(659, 0.18), 190); setTimeout(() => beep(523, 0.45), 380); },
+  circuitDone() {
+    [[784, 0.18, 0], [988, 0.18, 180], [1175, 0.18, 360], [1568, 0.7, 560]]
+      .forEach(([f, d, at]) => setTimeout(() => beep(f, d), at));
+  },
+};
+
 let wakeLock = null;
 async function keepAwake(on) {
   try {
@@ -755,35 +926,25 @@ async function keepAwake(on) {
 }
 
 function wireCircuitTimer(timerEl, fmt, stations, listCard) {
+  // a re-render while a circuit is running would otherwise leave a ghost
+  // interval beeping against detached DOM — kill the previous one first
+  if (window.circuitTimerCleanup) window.circuitTimerCleanup();
   const phaseEl = timerEl.querySelector('#t-phase');
   const clockEl = timerEl.querySelector('#t-clock');
   const subEl = timerEl.querySelector('#t-sub');
+  const animBox = timerEl.querySelector('#t-anim');
   const startBtn = timerEl.querySelector('#t-start');
   const resetBtn = timerEl.querySelector('#t-reset');
+  const skipBtn = timerEl.querySelector('#t-skip');
   let running = false, iv = null;
   let round = 1, station = 1, phase = 'prep', left = 10;
   let workDone = 0;
   const totalWork = fmt.rounds * fmt.stations;
+  const breakLen = fmt.roundBreak || 60;
   circuitProgress = 0;
   function reportProgress() {
     circuitProgress = workDone / totalWork;
     updateProgress();
-  }
-  // publish live state for the TV-mode skin
-  function publish() {
-    const order = stationOrder(round);
-    const curEx = EXERCISES[stations[order[Math.min(station, fmt.stations) - 1]]];
-    let nextEx = null;
-    if (phase !== 'done') {
-      if (station < fmt.stations) nextEx = EXERCISES[stations[order[station]]];
-      else if (round < fmt.rounds) nextEx = EXERCISES[stations[stationOrder(round + 1)[0]]];
-    }
-    window.circuitLive = {
-      fmtName: fmt.name, round, rounds: fmt.rounds, station, stationsN: fmt.stations,
-      phase, left, running, workDone, totalWork,
-      curName: curEx.name.replace(' (circuit)', ''), curCue: curEx.cue,
-      nextName: nextEx ? nextEx.name.replace(' (circuit)', '') : null,
-    };
   }
 
   function stationOrder(r) {
@@ -791,41 +952,112 @@ function wireCircuitTimer(timerEl, fmt, stations, listCard) {
     const idx = [...Array(fmt.stations).keys()];
     return (fmt.name === 'The Gauntlet' && r % 2 === 0) ? idx.reverse() : idx;
   }
-  function highlight() {
+
+  // who's where: person p works order[(station-1+p) % N] — staggered starts
+  function personStations() {
+    const N = fmt.stations;
     const order = stationOrder(round);
-    const exIdx = order[station - 1];
-    listCard.querySelectorAll('.station').forEach((s, i) => s.classList.toggle('current', i === exIdx));
-    const ex = EXERCISES[stations[exIdx]];
-    subEl.textContent = `Round ${round} of ${fmt.rounds} · Station ${station}: ${ex.name}`;
+    return circuitCfg().names.map((name, p) => {
+      const curIdx = order[(station - 1 + p) % N];
+      let nextIdx = null;
+      if (phase !== 'done') {
+        if (station < N) nextIdx = order[(station + p) % N];
+        else if (round < fmt.rounds) nextIdx = stationOrder(round + 1)[p % N];
+      }
+      return { name, color: PERSON_COLORS[name] || '#4ade80', curIdx, nextIdx };
+    });
   }
+
+  // publish live state for the TV-mode skin
+  function publish() {
+    const ppl = personStations();
+    const nm = (id) => EXERCISES[id].name.replace(' (circuit)', '');
+    const people = ppl.map(x => ({
+      name: x.name, color: x.color,
+      curName: nm(stations[x.curIdx]), curId: stations[x.curIdx],
+      nextName: x.nextIdx != null ? nm(stations[x.nextIdx]) : null,
+      nextId: x.nextIdx != null ? stations[x.nextIdx] : null,
+    }));
+    window.circuitLive = {
+      fmtName: fmt.name, round, rounds: fmt.rounds, station, stationsN: fmt.stations,
+      phase, left, running, workDone, totalWork, breakLen,
+      curName: people[0].curName, curId: people[0].curId, curCue: EXERCISES[people[0].curId].cue,
+      nextName: people[0].nextName, nextId: people[0].nextId,
+      people,
+    };
+  }
+
+  function highlight() {
+    const ppl = personStations();
+    // during rest/break light up where everyone is headed, not where they were
+    const showNext = phase === 'rest' || phase === 'break';
+    listCard.querySelectorAll('.station').forEach((s, i) => {
+      const here = ppl.filter(x => (showNext ? x.nextIdx : x.curIdx) === i);
+      s.classList.toggle('current', phase !== 'done' && here.length > 0);
+      const who = s.querySelector('.st-who');
+      if (who) {
+        who.innerHTML = (ppl.length > 1 && phase !== 'done')
+          ? here.map(x => `<span class="who-dot" style="background:${x.color}">${esc(x.name[0])}</span>`).join('')
+          : '';
+      }
+    });
+    if (phase === 'done') return;
+    if (phase === 'break') {
+      subEl.textContent = `💧 Water break — Round ${round + 1} of ${fmt.rounds} up next`;
+    } else if (ppl.length > 1) {
+      subEl.textContent = `Round ${round} of ${fmt.rounds} · ${showNext ? 'move to your lit-up station' : 'Station ' + station + ' of ' + fmt.stations}`;
+    } else {
+      const ex = EXERCISES[stations[ppl[0].curIdx]];
+      subEl.textContent = `Round ${round} of ${fmt.rounds} · Station ${station}: ${ex.name}`;
+    }
+  }
+
+  // phone demo loop: solo only (with 2-3 people the colored dots do the talking)
+  function syncPhoneAnim() {
+    if (!animBox) return;
+    let id = null;
+    if (circuitCfg().people === 1 && phase !== 'done') {
+      const p0 = personStations()[0];
+      const useNext = (phase === 'rest' || phase === 'break') && p0.nextIdx != null;
+      id = stations[useNext ? p0.nextIdx : p0.curIdx];
+    }
+    setAnim(animBox, id);
+    animBox.style.display = id ? '' : 'none';
+  }
+
   function tickUI() {
     clockEl.textContent = left;
-    phaseEl.textContent = phase === 'prep' ? 'GET READY' : phase === 'work' ? 'WORK' : 'REST';
-    phaseEl.className = 'timer-phase ' + (phase === 'work' ? 'work' : phase === 'rest' ? 'rest' : '');
+    phaseEl.textContent = phase === 'prep' ? 'GET READY' : phase === 'work' ? 'WORK' : phase === 'break' ? 'ROUND BREAK 💧' : 'REST';
+    phaseEl.className = 'timer-phase ' + (phase === 'work' ? 'work' : phase === 'rest' ? 'rest' : phase === 'break' ? 'break' : '');
+    skipBtn.style.display = phase === 'break' ? '' : 'none';
+    syncPhoneAnim();
     publish();
   }
   function advance() {
-    if (phase === 'prep') { phase = 'work'; left = fmt.work; beep(880, 0.35); }
+    if (phase === 'prep') { phase = 'work'; left = fmt.work; CUE.work(); }
     else if (phase === 'work') {
       workDone++; reportProgress();
       if (station === fmt.stations && round === fmt.rounds) return finish();
-      phase = 'rest'; left = fmt.rest; beep(440, 0.5);
-    } else {
+      if (station === fmt.stations) { phase = 'break'; left = breakLen; CUE.brk(); } // water break between rounds
+      else { phase = 'rest'; left = fmt.rest; CUE.rest(); }
+    } else { // rest or break over → next station (or next round)
       station++;
       if (station > fmt.stations) { station = 1; round++; }
-      phase = 'work'; left = fmt.work; beep(880, 0.35);
+      phase = 'work'; left = fmt.work; CUE.work();
     }
     highlight(); tickUI();
   }
   function finish() {
     clearInterval(iv); running = false;
     phase = 'done';
+    highlight(); // clears station highlights + who-dots
     phaseEl.textContent = 'DONE 🎉'; phaseEl.className = 'timer-phase work';
     clockEl.textContent = '✓';
     subEl.textContent = 'Circuit complete — hit Finish workout below.';
-    beep(880, 0.3); setTimeout(() => beep(1100, 0.3), 350); setTimeout(() => beep(1320, 0.5), 700);
+    CUE.circuitDone();
     if (navigator.vibrate) navigator.vibrate([150, 80, 150, 80, 300]);
-    listCard.querySelectorAll('.station').forEach(s => s.classList.remove('current'));
+    syncPhoneAnim();
+    skipBtn.style.display = 'none';
     if (!sessionLog()) keepAwake(false);
     startBtn.style.display = 'none';
     publish();
@@ -848,23 +1080,31 @@ function wireCircuitTimer(timerEl, fmt, stations, listCard) {
     beep(660, 0.15);
     iv = setInterval(() => {
       left--;
-      if (left <= 3 && left > 0) beep(660, 0.12);
+      if (left <= 3 && left > 0) CUE.count();
       if (left <= 0) advance();
       else tickUI();
     }, 1000);
   };
+  skipBtn.onclick = () => { if (phase === 'break') advance(); };
   resetBtn.onclick = () => {
     clearInterval(iv); running = false;
     round = 1; station = 1; phase = 'prep'; left = 10;
     workDone = 0; reportProgress();
     startBtn.style.display = ''; startBtn.textContent = '▶ Start circuit';
+    skipBtn.style.display = 'none';
     phaseEl.textContent = 'READY'; phaseEl.className = 'timer-phase';
     clockEl.textContent = fmt.work;
     subEl.textContent = `Round 1 of ${fmt.rounds} · Station 1 of ${fmt.stations}`;
-    listCard.querySelectorAll('.station').forEach(s => s.classList.remove('current'));
+    highlight();
+    syncPhoneAnim();
     if (!sessionLog()) keepAwake(false);
     publish();
   };
+  // people picker (and TV) can nudge us when the roster changes mid-workout
+  window.circuitRefresh = () => { highlight(); syncPhoneAnim(); publish(); };
+  window.circuitTimerCleanup = () => { clearInterval(iv); running = false; };
+  highlight();
+  syncPhoneAnim();
   publish();
 }
 

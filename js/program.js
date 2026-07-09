@@ -82,11 +82,12 @@ function pick(poolName, week, offset) {
 }
 
 // ---- Circuit formats rotate weekly for the F45 flavor ----
+// roundBreak = water break between rounds (skippable in the timer)
 const CIRCUIT_FORMATS = [
-  { name: 'Classic Stations', desc: '6 stations · 40s work / 20s rest · 3 rounds', work: 40, rest: 20, rounds: 3, stations: 6 },
-  { name: 'Long Grind', desc: '6 stations · 45s work / 15s rest · 3 rounds', work: 45, rest: 15, rounds: 3, stations: 6 },
-  { name: 'Power Intervals', desc: '6 stations · 30s hard / 30s rest · 3 rounds', work: 30, rest: 30, rounds: 3, stations: 6 },
-  { name: 'The Gauntlet', desc: '6 stations · 40s work / 20s rest · 3 rounds, station order reverses each round', work: 40, rest: 20, rounds: 3, stations: 6 },
+  { name: 'Classic Stations', desc: '6 stations · 40s work / 20s rest · 3 rounds · 60s water break between rounds', work: 40, rest: 20, rounds: 3, stations: 6, roundBreak: 60 },
+  { name: 'Long Grind', desc: '6 stations · 45s work / 15s rest · 3 rounds · 60s water break between rounds', work: 45, rest: 15, rounds: 3, stations: 6, roundBreak: 60 },
+  { name: 'Power Intervals', desc: '6 stations · 30s hard / 30s rest · 3 rounds · 60s water break between rounds', work: 30, rest: 30, rounds: 3, stations: 6, roundBreak: 60 },
+  { name: 'The Gauntlet', desc: '6 stations · 40s work / 20s rest · 3 rounds · 60s water break between rounds, station order reverses each round', work: 40, rest: 20, rounds: 3, stations: 6, roundBreak: 60 },
 ];
 
 const WARMUPS = [

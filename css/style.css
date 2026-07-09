@@ -151,8 +151,19 @@ main { padding: 16px; max-width: 640px; margin: 0 auto; }
 .timer-phase { font-size: .8rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
 .timer-phase.work { color: var(--accent); }
 .timer-phase.rest { color: var(--warn); }
+.timer-phase.break { color: var(--warn); }
 .timer-clock { font-size: 4.4rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
 .timer-sub { color: var(--muted); font-size: .85rem; margin-bottom: 12px; }
+#t-anim { height: 120px; max-width: 220px; margin: 2px auto 8px; }
+#t-anim svg { width: 100%; height: 100%; }
+
+/* multi-person: who's at which station */
+.st-who { display: flex; gap: 3px; flex-shrink: 0; }
+.who-dot {
+  width: 20px; height: 20px; border-radius: 50%;
+  color: #0b1320; font-size: .62rem; font-weight: 800;
+  display: inline-flex; align-items: center; justify-content: center;
+}
 
 /* ---------- Week view ---------- */
 .wk-day { display: flex; gap: 12px; align-items: flex-start; }
@@ -236,9 +247,57 @@ body.with-session { padding-bottom: 128px; }
 .tv-phase { font-weight: 800; letter-spacing: .35em; color: var(--muted); font-size: clamp(16px, 4.5vmin, 44px); }
 .tv-phase.work { color: var(--accent); }
 .tv-phase.rest { color: var(--warn); }
+.tv-phase.break { color: var(--warn); }
 .tv-clock { font-weight: 800; font-variant-numeric: tabular-nums; line-height: .95; font-size: clamp(96px, 38vmin, 52vh); }
 .tv-now { font-weight: 800; font-size: clamp(22px, 6vmin, 58px); }
 .tv-next { color: var(--muted); font-weight: 700; font-size: clamp(15px, 3.4vmin, 34px); }
+
+/* circuit body: solo = clock + big demo loop */
+.tv-cbody { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 1vmin 0; }
+.tv-solo { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4vmin; min-height: 0; }
+.tv-solo-left { display: flex; flex-direction: column; align-items: center; gap: 1vmin; text-align: center; min-width: 0; }
+.tv-solo .tv-clock { font-size: clamp(80px, 28vmin, 42vh); }
+.tv-solo-anim {
+  width: min(38vmin, 42vw); height: min(38vmin, 52vh); flex-shrink: 0;
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 1vmin;
+}
+.tv-anim svg { width: 100%; height: 100%; }
+
+/* circuit body: 2-3 people = shared clock strip + a panel per person */
+.tv-clockstrip { display: flex; align-items: center; justify-content: center; gap: 3vmin; }
+.tv-clockstrip .tv-clock { font-size: clamp(48px, 16vmin, 22vh); line-height: 1; }
+.tv-clockstrip .tv-phase { font-size: clamp(14px, 3.2vmin, 34px); }
+.tv-people { flex: 1; display: flex; gap: 2vmin; min-height: 0; padding-top: 1vmin; }
+.tv-panel {
+  flex: 1; min-width: 0; min-height: 0;
+  background: var(--card); border: 1px solid var(--line);
+  border-top: 6px solid var(--pc, var(--accent)); border-radius: 16px;
+  display: flex; flex-direction: column; padding: 1.5vmin; gap: .5vmin;
+}
+.tv-panel .tv-anim { flex: 1; width: 100%; min-height: 0; }
+.tv-ptext { display: flex; flex-direction: column; align-items: center; gap: .4vmin; text-align: center; min-width: 0; }
+.tv-pname { font-weight: 800; letter-spacing: .15em; color: var(--pc, var(--accent)); font-size: clamp(13px, 2.8vmin, 28px); }
+.tv-ptag { color: var(--muted); font-weight: 800; letter-spacing: .25em; font-size: clamp(10px, 1.8vmin, 18px); min-height: 1.1em; }
+.tv-pex { font-weight: 800; font-size: clamp(15px, 3vmin, 32px); line-height: 1.15; }
+.tv-pnext { color: var(--muted); font-weight: 700; font-size: clamp(11px, 2vmin, 20px); min-height: 1.2em; }
+.tv-panel-done { display: flex; align-items: center; justify-content: center; height: 100%; font-size: clamp(40px, 10vmin, 100px); }
+
+/* portrait phone (AirPlay mirroring a vertical phone): stack the panels */
+@media (orientation: portrait) {
+  .tv-top { flex-wrap: wrap; row-gap: 2px; }
+  .tv-title { font-size: 12px; letter-spacing: .06em; flex: 1 1 auto; }
+  .tv-round { font-size: 12px; white-space: nowrap; margin-left: auto; }
+  .tv-solo { flex-direction: column; gap: 2vmin; }
+  .tv-solo-anim { width: min(60vw, 40vh); height: min(60vw, 34vh); }
+  .tv-people { flex-direction: column; }
+  .tv-panel {
+    flex-direction: row; align-items: center; gap: 3vmin;
+    border-top: 1px solid var(--line); border-left: 6px solid var(--pc, var(--accent));
+    padding: 1.5vmin 3vmin;
+  }
+  .tv-panel .tv-anim { flex: 0 0 auto; width: clamp(80px, 24vmin, 160px); height: 100%; }
+  .tv-ptext { align-items: flex-start; text-align: left; flex: 1; }
+}
 
 .tv-bottom { display: flex; align-items: center; gap: 2.5vmin; }
 .tv-startbtn { width: auto; padding: clamp(10px, 2vmin, 18px) clamp(18px, 4vmin, 40px); font-size: clamp(15px, 2.8vmin, 28px); flex-shrink: 0; }
