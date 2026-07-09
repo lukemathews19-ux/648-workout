@@ -138,6 +138,7 @@ function startWorkoutSession(rerender = true) {
   const { log } = ensureDayLog(user, todayISO(), selectedDay);
   if (!log.startedAt) { log.startedAt = Date.now(); save(); }
   keepAwake(true);
+  initAudio(); // reached from a tap — unlock audio for the whole session
   if (rerender) render(); else updateSessionBar();
 }
 function fmtElapsed(ms) {
@@ -180,9 +181,10 @@ function updateProgress() {
   fill.style.width = pct + '%';
   document.getElementById('prog-pct').textContent = pct + '%';
 }
-// iOS releases the wake lock when the app is backgrounded — grab it back
+// iOS releases the wake lock (and can suspend audio) when the app is
+// backgrounded — grab both back
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && (sessionLog() || tvOverlay)) keepAwake(true);
+  if (document.visibilityState === 'visible' && (sessionLog() || tvOverlay)) { keepAwake(true); initAudio(); }
 });
 
 // ----- 📺 TV mode: big-screen layout for AirPlay mirroring to the garage TV -----
@@ -870,6 +872,7 @@ function startRest(e) {
     b.textContent = `⏱ Rest ${b.dataset.rest}s`;
   });
   clearInterval(restInterval);
+  initAudio(); // this tap unlocks audio so the end-of-rest beep can play
   let left = parseInt(btn.dataset.rest);
   btn.classList.add('running');
   btn.textContent = `⏸ ${left}s — tap to cancel`;
@@ -889,15 +892,39 @@ function startRest(e) {
 }
 
 // ----- Circuit interval timer -----
-let audioCtx = null;
-function beep(freq, dur) {
+// iOS audio is fragile in two ways: (1) the ring/silent switch mutes plain
+// Web Audio, so beeps vanish if the phone is on silent — routing the sound
+// through a playing <audio> element makes iOS treat it like music, which
+// ignores the switch (this is how real gym-timer apps beep on silent);
+// (2) the AudioContext can wake up 'suspended' or 'interrupted' after
+// backgrounding, a phone call, or an AirPlay route change, and it stays
+// silent until resume() is called. initAudio() runs on every timer tap and
+// on every beep to cover both.
+let audioCtx = null, audioOut = null, audioEl = null;
+function initAudio() {
   try {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state !== 'running') audioCtx.resume();
+    if (!audioEl && audioCtx.createMediaStreamDestination) {
+      audioOut = audioCtx.createMediaStreamDestination();
+      audioEl = document.createElement('audio');
+      audioEl.srcObject = audioOut.stream;
+      audioEl.setAttribute('playsinline', '');
+    }
+    if (audioEl && audioEl.paused) audioEl.play().catch(() => { /* not in a gesture yet — direct route covers it */ });
+  } catch (err) { /* no audio available */ }
+}
+function beep(freq, dur) {
+  try {
+    initAudio();
+    if (!audioCtx) return;
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
     o.frequency.value = freq; o.type = 'sine';
     g.gain.setValueAtTime(0.35, audioCtx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-    o.connect(g); g.connect(audioCtx.destination);
+    // prefer the silent-switch-proof media route; fall back to direct output
+    const mediaRouteLive = audioEl && !audioEl.paused && audioOut;
+    o.connect(g); g.connect(mediaRouteLive ? audioOut : audioCtx.destination);
     o.start(); o.stop(audioCtx.currentTime + dur);
   } catch (err) { /* no audio available */ }
 }
