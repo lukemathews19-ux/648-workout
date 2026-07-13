@@ -282,6 +282,58 @@ body.with-session { padding-bottom: 128px; }
 .tv-pnext { color: var(--muted); font-weight: 700; font-size: clamp(11px, 2vmin, 20px); min-height: 1.2em; }
 .tv-panel-done { display: flex; align-items: center; justify-content: center; height: 100%; font-size: clamp(40px, 10vmin, 100px); }
 
+/* interactive strength board (TV mode on lifting days) */
+.tv-sbody { flex: 1; display: flex; gap: 2vmin; min-height: 0; padding: 1.5vmin 0; }
+.tv-exlist { flex: 0 0 36%; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1vmin; }
+.tv-warmrow { color: var(--muted); font-size: clamp(11px, 2vmin, 18px); padding: 0 .4vmin .4vmin; }
+.tv-exrow {
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 1.4vmin 1.8vmin; cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center; gap: 1vmin;
+}
+.tv-exrow.sel { border-color: var(--accent); background: var(--card2); }
+.tv-exrow.done-all { opacity: .5; }
+.tv-exrow-name { font-weight: 800; font-size: clamp(13px, 2.4vmin, 24px); min-width: 0; }
+.tv-exrow-dots { color: var(--accent); font-size: clamp(11px, 2vmin, 20px); letter-spacing: .18em; white-space: nowrap; }
+.tv-exfocus {
+  flex: 1; min-width: 0; min-height: 0; overflow-y: auto;
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  padding: 2vmin; display: flex; flex-direction: column; gap: 1.4vmin;
+}
+.tv-focus-head { display: flex; gap: 2vmin; align-items: center; }
+.tv-focus-anim {
+  width: clamp(90px, 18vmin, 200px); height: clamp(90px, 18vmin, 200px); flex-shrink: 0;
+  background: var(--card2); border-radius: 12px;
+}
+.tv-focus-text { min-width: 0; }
+.tv-focus-name { font-weight: 800; font-size: clamp(18px, 3.6vmin, 40px); line-height: 1.1; }
+.tv-focus-meta { color: var(--muted); font-size: clamp(12px, 2.2vmin, 22px); margin-top: .5vmin; }
+.tv-focus-sug { color: var(--accent); font-weight: 700; font-size: clamp(12px, 2.2vmin, 22px); margin-top: .8vmin; }
+.tv-focus-sug.hold { color: var(--muted); }
+.tv-focus-cue { color: var(--muted); font-style: italic; font-size: clamp(11px, 2vmin, 20px); }
+.tv-sets { display: flex; flex-direction: column; gap: 1vmin; }
+.tv-setrow { display: grid; grid-template-columns: auto 1fr 1fr auto; gap: 1.4vmin; align-items: center; }
+.tv-setrow .lbl { color: var(--muted); font-weight: 700; font-size: clamp(12px, 2.2vmin, 22px); white-space: nowrap; }
+.tv-setrow input {
+  width: 100%; background: var(--card2); border: 1px solid var(--line); color: var(--text);
+  border-radius: 10px; padding: 1.2vmin .8vmin; text-align: center; font-weight: 800;
+  font-size: clamp(14px, 2.6vmin, 26px); -moz-appearance: textfield;
+}
+.tv-setrow input::-webkit-outer-spin-button, .tv-setrow input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.tv-setrow input:focus { outline: none; border-color: var(--accent); }
+.tv-setrow input::placeholder { color: #4a5568; font-weight: 400; }
+.tv-check {
+  width: clamp(36px, 6vmin, 60px); height: clamp(36px, 6vmin, 60px);
+  border-radius: 12px; border: 1px solid var(--line); background: var(--card2);
+  color: var(--muted); font-size: clamp(16px, 3vmin, 30px); cursor: pointer;
+}
+.tv-check.done { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+.tv-restbtn {
+  border: 1px dashed var(--line); background: none; color: var(--muted);
+  border-radius: 10px; padding: 1.4vmin; font-size: clamp(12px, 2.2vmin, 22px); cursor: pointer;
+}
+.tv-restbtn.running { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
 /* portrait phone (AirPlay mirroring a vertical phone): stack the panels */
 @media (orientation: portrait) {
   .tv-top { flex-wrap: wrap; row-gap: 2px; }
@@ -297,6 +349,10 @@ body.with-session { padding-bottom: 128px; }
   }
   .tv-panel .tv-anim { flex: 0 0 auto; width: clamp(80px, 24vmin, 160px); height: 100%; }
   .tv-ptext { align-items: flex-start; text-align: left; flex: 1; }
+  .tv-sbody { flex-direction: column; }
+  .tv-exfocus { order: 1; }
+  .tv-exlist { order: 2; flex: 0 0 30%; }
+  .tv-focus-anim { width: clamp(70px, 24vmin, 120px); height: clamp(70px, 24vmin, 120px); }
 }
 
 .tv-bottom { display: flex; align-items: center; gap: 2.5vmin; }

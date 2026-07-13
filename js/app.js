@@ -22,6 +22,7 @@ let sessTicker = null;    // interval updating the session clock
 let circuitProgress = 0;  // 0..1, fed by the circuit timer
 let tvOverlay = null;     // 📺 TV-mode overlay element
 let tvTicker = null;
+let tvSelEx = null;       // strength TV mode: index of the focused exercise card
 const todayISO = () => {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -223,15 +224,6 @@ function enterTV() {
       updateTv();
     };
   } else {
-    const slots = day.slots.filter(s => user === 'luke' || !s.bonus).filter(s => !shortMode || s.anchor);
-    const rows = slots.map(s => {
-      const ex = EXERCISES[s.exId];
-      const nSets = shortMode ? Math.min(3, s.sets[user]) : s.sets[user];
-      return `<div class="tv-row ${s.superset ? 'ss' + s.superset : ''}">
-        <div class="tv-ex">${s.anchor ? '⭐ ' : ''}${esc(ex.name)}${s.bonus ? ' <span class="tv-bonus">BONUS</span>' : ''}</div>
-        <div class="tv-scheme">${nSets} × ${s.reps[0]}–${s.reps[1]}</div>
-      </div>`;
-    }).join('');
     tvOverlay = el(`
       <div id="tv-mode">
         <div class="tv-top">
@@ -239,19 +231,26 @@ function enterTV() {
           <div class="tv-title">DAY ${selectedDay} · ${esc(day.title).toUpperCase()}</div>
           <div class="tv-round">${weekLabel}</div>
         </div>
-        <div class="tv-board">
-          <div class="tv-warm">🔥 ${esc(day.warmup)}</div>
-          ${rows}
+        <div class="tv-sbody">
+          <div class="tv-exlist" id="tv-exlist"></div>
+          <div class="tv-exfocus" id="tv-exfocus"></div>
         </div>
         <div class="tv-bottom">
+          <button class="btn tv-startbtn" id="tv-finish" style="display:none">🏁 Finish workout</button>
           <div class="prog-track"><div class="prog-fill" id="tv-fill"></div></div>
           <span class="tv-sess" id="tv-sess"></span>
         </div>
       </div>`);
+    tvOverlay.querySelector('#tv-finish').onclick = () => { exitTV(); finishWorkout(selectedDay); };
   }
 
   tvOverlay.querySelector('.tv-exit').onclick = exitTV;
   document.body.appendChild(tvOverlay);
+  if (selectedDay !== 'C') {
+    tvSelEx = null;
+    buildTvExList(day.warmup);
+    tvSelectDefault();
+  }
   tvTicker = setInterval(updateTv, 300);
   updateTv();
 }
@@ -259,7 +258,144 @@ function enterTV() {
 function exitTV() {
   if (tvTicker) { clearInterval(tvTicker); tvTicker = null; }
   if (tvOverlay) { tvOverlay.remove(); tvOverlay = null; }
+  tvSelEx = null;
   if (!sessionLog()) keepAwake(false); else keepAwake(true);
+}
+
+// ----- Interactive strength board for TV mode -----
+// The hidden phone UI stays the single source of truth: TV controls forward
+// taps and typed numbers to the phone's inputs underneath, so persistence,
+// placeholder cascade, progression suggestions, and the progress bar all
+// keep working exactly as they do on the phone.
+function tvCards() { return [...document.querySelectorAll('#main .ex-card')]; }
+
+function buildTvExList(warmup) {
+  const list = tvOverlay && tvOverlay.querySelector('#tv-exlist');
+  if (!list) return;
+  list.innerHTML = warmup ? `<div class="tv-warmrow">🔥 ${esc(warmup)}</div>` : '';
+  tvCards().forEach((card, i) => {
+    const name = card.querySelector('.ex-name').textContent;
+    const anchor = !!card.querySelector('.anchor-tag');
+    const bonus = !!card.querySelector('.bonus-tag');
+    const row = el(`<div class="tv-exrow" data-i="${i}">
+      <div class="tv-exrow-name">${anchor ? '⭐ ' : ''}${esc(name)}${bonus ? ' <span class="tv-bonus">BONUS</span>' : ''}</div>
+      <div class="tv-exrow-dots"></div>
+    </div>`);
+    row.onclick = () => tvSelectEx(i);
+    list.appendChild(row);
+  });
+}
+
+function tvSelectDefault() {
+  const cards = tvCards();
+  let i = cards.findIndex(c => [...c.querySelectorAll('.set-check')].some(b => !b.classList.contains('done')));
+  if (i < 0) i = 0;
+  tvSelectEx(i);
+}
+
+function tvSelectEx(i) {
+  tvSelEx = i;
+  buildTvExFocus();
+  syncTvStrength();
+}
+
+function buildTvExFocus() {
+  const focus = tvOverlay && tvOverlay.querySelector('#tv-exfocus');
+  const card = tvCards()[tvSelEx];
+  if (!focus || !card) return;
+  const name = card.querySelector('.ex-name').textContent;
+  const meta = card.querySelector('.ex-meta').textContent;
+  const sugEl = card.querySelector('.suggestion');
+  const cueEl = card.querySelector('.cue');
+  const restBtn = card.querySelector('.rest-btn');
+  focus.innerHTML = `
+    <div class="tv-focus-head">
+      <div class="tv-anim tv-focus-anim"></div>
+      <div class="tv-focus-text">
+        <div class="tv-focus-name">${esc(name)}</div>
+        <div class="tv-focus-meta">${esc(meta)}</div>
+        ${sugEl ? `<div class="tv-focus-sug ${sugEl.classList.contains('hold') ? 'hold' : ''}">${esc(sugEl.textContent)}</div>` : ''}
+      </div>
+    </div>
+    <div class="tv-sets"></div>
+    ${restBtn ? '<button class="tv-restbtn" id="tv-rest"></button>' : ''}
+    ${cueEl ? `<div class="tv-focus-cue">${esc(cueEl.textContent)}</div>` : ''}`;
+  setAnim(focus.querySelector('.tv-focus-anim'), card.dataset.ex);
+
+  const setsWrap = focus.querySelector('.tv-sets');
+  [...card.querySelectorAll('.set-row')].forEach((pr, si) => {
+    const pw = pr.querySelector('.in-w'), prr = pr.querySelector('.in-r');
+    const row = el(`
+      <div class="tv-setrow">
+        <div class="lbl">Set ${si + 1}</div>
+        <input type="number" inputmode="decimal" class="tw" placeholder="${esc(pw.placeholder)}" value="${esc(pw.value)}" ${pw.disabled ? 'disabled style="opacity:.35"' : ''}>
+        <input type="number" inputmode="numeric" class="tr" placeholder="${esc(prr.placeholder)}" value="${esc(prr.value)}">
+        <button class="tv-check">✓</button>
+      </div>`);
+    const forward = (tvIn, phoneIn) => {
+      ['input', 'change'].forEach(evt => tvIn.addEventListener(evt, () => {
+        phoneIn.value = tvIn.value;
+        phoneIn.dispatchEvent(new Event(evt));
+      }));
+    };
+    forward(row.querySelector('.tw'), pw);
+    forward(row.querySelector('.tr'), prr);
+    row.querySelector('.tv-check').onclick = () => {
+      pr.querySelector('.set-check').click();
+      syncTvStrength();
+      // finished this exercise? hop to the next unfinished one
+      if ([...card.querySelectorAll('.set-check')].every(b => b.classList.contains('done'))) {
+        const next = tvCards().findIndex(c => [...c.querySelectorAll('.set-check')].some(b => !b.classList.contains('done')));
+        if (next >= 0 && next !== tvSelEx) setTimeout(() => { if (tvOverlay && tvSelEx !== next) tvSelectEx(next); }, 700);
+      }
+    };
+    setsWrap.appendChild(row);
+  });
+  const tvRest = focus.querySelector('#tv-rest');
+  if (tvRest) tvRest.onclick = () => { restBtn.click(); syncTvStrength(); };
+}
+
+// mirror phone state onto the TV board (runs on the 300ms TV ticker)
+function syncTvStrength() {
+  if (!tvOverlay) return;
+  const cards = tvCards();
+  tvOverlay.querySelectorAll('.tv-exrow').forEach(row => {
+    const card = cards[+row.dataset.i];
+    if (!card) return;
+    const checks = [...card.querySelectorAll('.set-check')];
+    const done = checks.filter(b => b.classList.contains('done')).length;
+    row.querySelector('.tv-exrow-dots').textContent = checks.map(b => b.classList.contains('done') ? '●' : '○').join('');
+    row.classList.toggle('sel', +row.dataset.i === tvSelEx);
+    row.classList.toggle('done-all', checks.length > 0 && done === checks.length);
+  });
+  const card = cards[tvSelEx];
+  const focus = tvOverlay.querySelector('#tv-exfocus');
+  if (card && focus) {
+    const phoneRows = [...card.querySelectorAll('.set-row')];
+    focus.querySelectorAll('.tv-setrow').forEach((row, si) => {
+      const pr = phoneRows[si];
+      if (!pr) return;
+      row.querySelector('.tv-check').classList.toggle('done', pr.querySelector('.set-check').classList.contains('done'));
+      for (const [tvIn, phoneIn] of [[row.querySelector('.tw'), pr.querySelector('.in-w')], [row.querySelector('.tr'), pr.querySelector('.in-r')]]) {
+        if (document.activeElement === tvIn) continue; // don't clobber typing
+        if (tvIn.value !== phoneIn.value) tvIn.value = phoneIn.value;
+        if (tvIn.placeholder !== phoneIn.placeholder) tvIn.placeholder = phoneIn.placeholder;
+      }
+    });
+    const tvRest = focus.querySelector('#tv-rest');
+    const restBtn = card.querySelector('.rest-btn');
+    if (tvRest && restBtn) {
+      tvRest.textContent = restBtn.textContent;
+      tvRest.classList.toggle('running', restBtn.classList.contains('running'));
+    }
+  }
+  // show Finish once every set is checked (and the workout isn't already logged)
+  const fin = tvOverlay.querySelector('#tv-finish');
+  if (fin) {
+    const allChecks = [...document.querySelectorAll('#main .set-check')];
+    const phoneFin = [...document.querySelectorAll('#main .view > .btn')].find(b => /Finish workout|Workout logged/.test(b.textContent));
+    fin.style.display = (allChecks.length && allChecks.every(b => b.classList.contains('done')) && phoneFin && !phoneFin.disabled) ? '' : 'none';
+  }
 }
 
 // (Re)build the circuit body: one big clock + demo for solo, or a shared
@@ -310,10 +446,11 @@ function updateTv() {
 
   if (selectedDay !== 'C') {
     // strength board: progress = sets checked (mirrors the phone UI underneath)
-    const checks = document.querySelectorAll('.set-check').length;
-    const done = document.querySelectorAll('.set-check.done').length;
+    const checks = document.querySelectorAll('#main .set-check').length;
+    const done = document.querySelectorAll('#main .set-check.done').length;
     const fill = tvOverlay.querySelector('#tv-fill');
     if (fill) fill.style.width = (checks ? Math.round(done / checks * 100) : 0) + '%';
+    syncTvStrength();
     return;
   }
 
@@ -589,7 +726,7 @@ function renderStrengthDay(v, day, status) {
     lastSuperset = slot.superset || null;
 
     const card = el(`
-      <div class="card ex-card">
+      <div class="card ex-card" data-ex="${slot.exId}">
         <div class="ex-head">
           <div>
             ${slot.anchor ? '<div class="anchor-tag">⭐ Anchor lift</div>' : ''}

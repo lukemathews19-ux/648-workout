@@ -1,5 +1,5 @@
 // Cache-first service worker so the app opens instantly (and offline) in the gym.
-const CACHE = '648-workout-v2';
+const CACHE = '648-workout-v3';
 const ASSETS = ['.', 'index.html', 'css/style.css', 'js/exercises.js', 'js/anims.js', 'js/program.js', 'js/cardio.js', 'js/app.js', 'manifest.webmanifest', 'icon.svg', 'apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
