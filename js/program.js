@@ -57,23 +57,23 @@ const BLOCKS = [
 
 // ---- Weekly-rotating accessory pools (offset keeps pairs from syncing up) ----
 const POOLS = {
-  lunge:        ['db_rev_lunge', 'bulgarian_ss', 'db_stepup', 'db_walking_lunge', 'lateral_lunge', 'curtsy_lunge'],
-  glute:        ['bb_hip_thrust', 'glute_bridge', 'stability_ham_curl', 'sl_glute_bridge', 'banded_walk', 'cable_pullthrough'],
-  push2:        ['db_shoulder_press', 'pushup', 'arnold_press', 'db_floor_press', 'db_push_press', 'pike_pushup'],
-  pull2:        ['db_row', 'chest_sup_row', 'cable_row', 'band_row', 'chinup', 'bb_inverted_row', 'renegade_row'],
+  lunge:        ['db_rev_lunge', 'bulgarian_ss', 'db_stepup', 'db_walking_lunge', 'lateral_lunge', 'curtsy_lunge', 'pendulum_lunge', 'overhead_lunge'],
+  glute:        ['bb_hip_thrust', 'glute_bridge', 'stability_ham_curl', 'sl_glute_bridge', 'banded_walk', 'cable_pullthrough', 'sl_rdl', 'staggered_rdl', 'plate_calf_raise'],
+  push2:        ['db_shoulder_press', 'pushup', 'arnold_press', 'db_floor_press', 'db_push_press', 'pike_pushup', 'db_fly', 'incline_pushup'],
+  pull2:        ['db_row', 'chest_sup_row', 'cable_row', 'band_row', 'chinup', 'bb_inverted_row', 'renegade_row', 'chin_hold'],
   shoulder_acc: ['lateral_raise', 'band_face_pull', 'rear_delt_fly', 'band_pull_apart', 'db_shrug', 'front_raise', 'upright_row'],
   biceps:       ['ez_curl', 'db_curl', 'hammer_curl', 'cable_curl', 'concentration_curl', 'ez_reverse_curl'],
-  triceps:      ['tricep_pushdown', 'skullcrusher', 'oh_tricep_ext', 'bench_dip', 'db_kickback', 'close_grip_pushup'],
-  coreA:        ['ab_wheel', 'dead_bug', 'hanging_knee_raise', 'pallof_press', 'stir_the_pot', 'vups', 'ball_knee_tuck', 'plank_shoulder_tap'],
-  coreB:        ['plank', 'side_plank', 'situp_abmat', 'russian_twist', 'hollow_hold', 'bird_dog', 'bicycle_crunch', 'flutter_kick'],
+  triceps:      ['tricep_pushdown', 'skullcrusher', 'oh_tricep_ext', 'bench_dip', 'db_kickback', 'close_grip_pushup', 'db_squeeze_press'],
+  coreA:        ['ab_wheel', 'dead_bug', 'hanging_knee_raise', 'pallof_press', 'stir_the_pot', 'vups', 'ball_knee_tuck', 'plank_shoulder_tap', 'med_ball_chop'],
+  coreB:        ['plank', 'side_plank', 'situp_abmat', 'russian_twist', 'hollow_hold', 'bird_dog', 'bicycle_crunch', 'flutter_kick', 'lying_leg_raise', 'butterfly_situp'],
   // circuit station pools — one pick per slot each week
-  c_lower:      ['kb_goblet_pulse', 'db_thruster', 'box_stepover', 'bosu_squat', 'wall_ball_thruster', 'jump_squat', 'skater_bound'],
-  c_power:      ['kb_swing_circuit', 'slam_ball', 'box_jump', 'med_ball_chest_pass', 'db_snatch', 'kb_clean_press'],
-  c_push:       ['pushup', 'db_floor_press', 'db_push_press', 'arnold_press', 'decline_pushup'],
+  c_lower:      ['kb_goblet_pulse', 'db_thruster', 'box_stepover', 'bosu_squat', 'wall_ball_thruster', 'jump_squat', 'skater_bound', 'sumo_squat', 'weighted_stepover', 'heel_elevated_goblet'],
+  c_power:      ['kb_swing_circuit', 'slam_ball', 'box_jump', 'med_ball_chest_pass', 'db_snatch', 'kb_clean_press', 'devils_press'],
+  c_push:       ['pushup', 'db_floor_press', 'db_push_press', 'arnold_press', 'decline_pushup', 'med_ball_pushup', 'incline_pushup'],
   c_pull:       ['band_row', 'db_row', 'band_pulldown', 'chest_sup_row', 'renegade_row'],
-  c_engine:     ['row_sprint', 'bike_sprint', 'jump_rope', 'agility_ladder', 'treadmill_incline', 'bear_crawl', 'shuttle_run'],
-  c_core:       ['mountain_climber', 'russian_twist', 'plank', 'vups', 'hollow_hold', 'situp_abmat', 'plank_shoulder_tap', 'bicycle_crunch', 'flutter_kick'],
-  c_carry:      ['farmer_carry', 'burpee', 'kb_swing_circuit', 'slam_ball', 'suitcase_carry', 'overhead_carry'],
+  c_engine:     ['row_sprint', 'bike_sprint', 'jump_rope', 'agility_ladder', 'treadmill_incline', 'bear_crawl', 'shuttle_run', 'lateral_hop', 'sprawl'],
+  c_core:       ['mountain_climber', 'russian_twist', 'plank', 'vups', 'hollow_hold', 'situp_abmat', 'plank_shoulder_tap', 'bicycle_crunch', 'flutter_kick', 'med_ball_chop', 'lying_leg_raise'],
+  c_carry:      ['farmer_carry', 'burpee', 'kb_swing_circuit', 'slam_ball', 'suitcase_carry', 'overhead_carry', 'kb_rack_march'],
 };
 
 function pick(poolName, week, offset) {

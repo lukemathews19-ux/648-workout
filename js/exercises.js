@@ -132,6 +132,28 @@ const EXERCISES = {
   cable_pullthrough: { name: 'Cable Pull-Through', cat: 'glute', equip: 'Rack pulley, low setting', reps: [10, 12], unit: 'lb', cue: 'Face away from the rack, hinge, snap the hips through.' },
   front_raise:     { name: 'DB Front Raise', cat: 'shoulder_acc', equip: 'Light dumbbells', reps: [12, 15], unit: 'lb', cue: 'Arms straight, raise to eye level, zero swing.' },
   upright_row:     { name: 'EZ Bar Upright Row', cat: 'shoulder_acc', equip: 'EZ bar', reps: [10, 12], unit: 'lb', cue: 'Pull to sternum height, elbows lead the way, wrists relaxed.' },
+
+  // ---- From the F45 intel week of 2026-07-13 (translated to the home gym) ----
+  weighted_stepover: { name: 'Slam Ball Box Step-Over', cat: 'cond', equip: 'Slam ball + plyo box 16"', reps: [10, 12], unit: 'lb', cue: 'Ball hugged at your chest — step up, over, and down, smooth not rushed.' },
+  pendulum_lunge:  { name: 'DB Pendulum Lunge', cat: 'lunge', equip: 'Dumbbells', reps: [6, 8], unit: 'lb', cue: 'Front lunge into back lunge on the same leg, no touchdown between. Reps per leg.' },
+  lateral_hop:     { name: 'Lateral Hop', cat: 'cond', equip: 'Cone or a line', reps: [30, 40], unit: 'time', cue: 'Feet together, quick springy hops side to side over the line.' },
+  med_ball_pushup: { name: 'Med Ball Push-Up', cat: 'hpush', equip: 'Med ball', reps: [8, 12], unit: 'bw', cue: 'One hand on the ball, chest low — switch hands halfway.' },
+  plate_calf_raise:{ name: 'Calf Raise (DBs or plate)', cat: 'glute', equip: 'DBs or a plate', reps: [12, 20], unit: 'lb', cue: 'Pause one second at the very top, full stretch at the bottom.' },
+  sumo_squat:      { name: 'Sumo Squat (KB or slam ball)', cat: 'cond', equip: 'KB or slam ball', reps: [10, 15], unit: 'lb', cue: 'Wide stance, toes out, knees track the toes, pause at the bottom.' },
+  devils_press:    { name: "DB Devil's Press", cat: 'cond', equip: 'Two dumbbells', reps: [6, 10], unit: 'lb', cue: 'Burpee on the bells, then swing them straight overhead. Brutal — pace it.' },
+  incline_pushup:  { name: 'Incline Push-Up (explosive)', cat: 'hpush', equip: 'Plyo box or bench', reps: [10, 15], unit: 'bw', cue: 'Hands on the box — push hard enough to pop your hands off.' },
+  kb_rack_march:   { name: 'KB Front Rack March', cat: 'cond', equip: 'Two kettlebells', reps: [30, 45], unit: 'time', cue: 'Bells racked at your chest, march tall — slow knees, tight core.' },
+  med_ball_chop:   { name: 'Med Ball Chop', cat: 'core', equip: 'Med ball', reps: [8, 12], unit: 'lb', cue: 'Low outside one knee to high over the other shoulder. Reps per side.' },
+  overhead_lunge:  { name: 'DB Overhead Reverse Lunge', cat: 'lunge', equip: 'One dumbbell', reps: [6, 8], unit: 'lb', cue: 'Bell locked out overhead, step back, stay tall. Reps per side.' },
+  sl_rdl:          { name: 'Single-Leg RDL', cat: 'glute', equip: 'Dumbbells', reps: [8, 10], unit: 'lb', cue: 'Hinge on one leg, back leg reaches long behind you. Reps per leg.' },
+  db_fly:          { name: 'DB Floor Fly', cat: 'hpush', equip: 'Dumbbells', reps: [10, 12], unit: 'lb', cue: 'Slight elbow bend, open wide, squeeze back together like hugging a tree.' },
+  lying_leg_raise: { name: 'Lying Leg Raise', cat: 'core', equip: 'Yoga mat', reps: [10, 15], unit: 'bw', cue: 'Legs straight up to vertical, lower slow — heels never touch down.' },
+  db_squeeze_press:{ name: 'DB Squeeze Press', cat: 'arms', equip: 'DBs + flat bench', reps: [8, 12], unit: 'lb', cue: 'Press the bells into each other the whole rep — triceps and chest light up.' },
+  chin_hold:       { name: 'Chin-Over-Bar Hold', cat: 'vpull', equip: 'Pull-up bar', reps: [10, 30], unit: 'time', cue: 'Get to the top and fight to stay there. Band-assist is fine.' },
+  sprawl:          { name: 'Sprawl', cat: 'cond', equip: 'Bodyweight', reps: [10, 15], unit: 'bw', cue: 'A burpee minus the push-up and jump — kick back, snap in, stand fast.' },
+  butterfly_situp: { name: 'Butterfly Sit-Up', cat: 'core', equip: 'Yoga mat', reps: [12, 20], unit: 'bw', cue: 'Soles of your feet together, knees wide, reach past your toes.' },
+  heel_elevated_goblet: { name: 'Heel-Elevated Goblet Squat', cat: 'squat', equip: 'KB + plate under heels', reps: [10, 12], unit: 'lb', cue: 'Heels up on a plate, sit straight down — quads on fire.' },
+  staggered_rdl:   { name: 'Staggered-Stance RDL', cat: 'glute', equip: 'Dumbbells', reps: [8, 10], unit: 'lb', cue: 'Kickstand stance, 80% on the front leg, hinge and stretch. Reps per leg.' },
 };
 
 // Demo link: YouTube search never goes stale.
