@@ -838,12 +838,12 @@ function setAnim(elm, exId) {
 
 function renderCircuitDay(v, day, status) {
   const fmt = shortMode
-    ? { ...day.format, rounds: 2, desc: day.format.desc.replace(/3 rounds/, '2 rounds') }
+    ? { ...day.format, rounds: 2, desc: day.format.desc.replace(/\d rounds/, '2 rounds') }
     : day.format;
   const existing = getDayLog(user, status[selectedDay] || todayISO());
   const completed = !!(existing && existing.day === 'C' && existing.completedAt);
 
-  v.appendChild(el(`<div class="card"><h3>🔄 ${esc(fmt.name)}</h3><div class="muted small">${esc(fmt.desc)}. Move station to station — write nothing down, just work. ${user === 'kristen' ? 'Kristen: you\'re done after the 3 rounds.' : ''}</div></div>`));
+  v.appendChild(el(`<div class="card"><h3>🔄 ${esc(fmt.name)}</h3><div class="muted small">${esc(fmt.desc)}. Move station to station — write nothing down, just work. ${user === 'kristen' ? 'Kristen: you\'re done after the last round.' : ''}</div></div>`));
 
   // 👥 People picker — staggered stations so nobody needs the same machine
   const pplCard = el('<div class="card"><h3>👥 Who\'s doing the circuit?</h3><div class="pp-body"></div></div>');

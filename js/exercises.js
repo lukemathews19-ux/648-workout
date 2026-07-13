@@ -105,6 +105,33 @@ const EXERCISES = {
   kb_swing_circuit:{ name: 'KB Swing (circuit)', cat: 'cond', equip: 'Kettlebell', reps: [15, 20], unit: 'lb', cue: 'Crisp hip snaps, breathe with the rhythm.' },
   med_ball_chest_pass: { name: 'Med Ball Chest Pass (to floor/wall)', cat: 'cond', equip: 'Med ball', reps: [10, 15], unit: 'lb', cue: 'Explosive throw, catch or pick up, repeat.' },
   treadmill_incline: { name: 'Treadmill Incline Walk/Run', cat: 'cond', equip: 'Treadmill', reps: [40, 60], unit: 'time', cue: 'Steep incline, brisk pace — no hands on the rails.' },
+
+  // ---- Variety expansion (July 2026): F45-style additions using the home gym ----
+  db_snatch:       { name: 'DB Snatch', cat: 'cond', equip: 'One dumbbell', reps: [8, 10], unit: 'lb', cue: 'Hinge, then punch the bell to the ceiling in one pull. Reps per arm.' },
+  kb_clean_press:  { name: 'KB Clean & Press', cat: 'cond', equip: 'Kettlebell', reps: [6, 8], unit: 'lb', cue: 'Clean to the rack position, small dip, press. Reps per arm.' },
+  jump_squat:      { name: 'Jump Squat', cat: 'cond', equip: 'Bodyweight', reps: [10, 12], unit: 'bw', cue: 'Sit to half depth, explode up, land soft and quiet.' },
+  skater_bound:    { name: 'Skater Bound', cat: 'cond', equip: 'Bodyweight', reps: [30, 40], unit: 'time', cue: 'Bound side to side, stick each landing on one leg.' },
+  bear_crawl:      { name: 'Bear Crawl', cat: 'cond', equip: 'Bodyweight', reps: [30, 40], unit: 'time', cue: 'Knees an inch off the floor, opposite hand and foot, stay low.' },
+  shuttle_run:     { name: 'Cone Shuttle Run', cat: 'cond', equip: 'Cones ~10 yd apart', reps: [30, 40], unit: 'time', cue: 'Touch the cone each turn, low and quick out of the cut.' },
+  decline_pushup:  { name: 'Decline Push-Up', cat: 'hpush', equip: 'Stands + plyo box', reps: [8, 12], unit: 'bw', cue: 'Feet up on the box, hands on the stands, chest to the floor.' },
+  renegade_row:    { name: 'Renegade Row', cat: 'hpull', equip: 'Dumbbells', reps: [8, 10], unit: 'lb', cue: 'Plank on the bells, row one, fight the twist. Reps per arm.' },
+  bb_inverted_row: { name: 'Inverted Row (bar in rack)', cat: 'hpull', equip: 'Barbell racked at hip height', reps: [8, 12], unit: 'bw', cue: 'Hang under the bar, body in one line, pull chest to bar.' },
+  pike_pushup:     { name: 'Pike Push-Up', cat: 'vpush', equip: 'Bodyweight', reps: [8, 12], unit: 'bw', cue: 'Hips high like a tent, lower the top of your head to the floor.' },
+  bicycle_crunch:  { name: 'Bicycle Crunch', cat: 'core', equip: 'Yoga mat', reps: [10, 15], unit: 'bw', cue: 'Slow and controlled — opposite elbow to knee. Reps per side.' },
+  plank_shoulder_tap: { name: 'Plank Shoulder Tap', cat: 'core', equip: 'Bodyweight', reps: [10, 14], unit: 'bw', cue: 'Feet wide, tap the opposite shoulder without rocking the hips. Taps per side.' },
+  flutter_kick:    { name: 'Flutter Kick', cat: 'core', equip: 'Yoga mat', reps: [20, 30], unit: 'time', cue: 'Low back pressed into the mat, small fast kicks.' },
+  ball_knee_tuck:  { name: 'Stability Ball Knee Tuck', cat: 'core', equip: 'Stability ball', reps: [10, 12], unit: 'bw', cue: 'Plank with shins on the ball, pull knees to chest, roll back slow.' },
+  suitcase_carry:  { name: 'Suitcase Carry', cat: 'cond', equip: 'One heavy KB', reps: [30, 45], unit: 'time', cue: 'One bell, stay dead level — no leaning. Swap sides halfway.' },
+  overhead_carry:  { name: 'Overhead Carry', cat: 'cond', equip: 'One DB overhead', reps: [30, 45], unit: 'time', cue: 'Lock the elbow, ribs down, walk tall. Swap arms halfway.' },
+  bench_dip:       { name: 'Bench Dip', cat: 'arms', equip: 'Bench', reps: [10, 15], unit: 'bw', cue: 'Hands on the bench edge behind you, elbows track straight back.' },
+  db_kickback:     { name: 'DB Tricep Kickback', cat: 'arms', equip: 'Light DBs', reps: [10, 15], unit: 'lb', cue: 'Hinge over, pin the elbow high, extend to straight.' },
+  close_grip_pushup: { name: 'Close-Grip Push-Up', cat: 'arms', equip: 'Bodyweight', reps: [8, 12], unit: 'bw', cue: 'Hands under your chest, elbows tight to your ribs.' },
+  concentration_curl: { name: 'Concentration Curl', cat: 'arms', equip: 'DB + bench', reps: [10, 12], unit: 'lb', cue: 'Seated, elbow braced on your thigh, squeeze at the top. Reps per arm.' },
+  ez_reverse_curl: { name: 'EZ Bar Reverse Curl', cat: 'arms', equip: 'EZ curl bar', reps: [10, 12], unit: 'lb', cue: 'Palms down — the forearms do the work, go lighter than a normal curl.' },
+  curtsy_lunge:    { name: 'Curtsy Lunge', cat: 'lunge', equip: 'DB or bodyweight', reps: [8, 10], unit: 'lb', cue: 'Step back and across behind you, front knee tracks the toes. Reps per leg.' },
+  cable_pullthrough: { name: 'Cable Pull-Through', cat: 'glute', equip: 'Rack pulley, low setting', reps: [10, 12], unit: 'lb', cue: 'Face away from the rack, hinge, snap the hips through.' },
+  front_raise:     { name: 'DB Front Raise', cat: 'shoulder_acc', equip: 'Light dumbbells', reps: [12, 15], unit: 'lb', cue: 'Arms straight, raise to eye level, zero swing.' },
+  upright_row:     { name: 'EZ Bar Upright Row', cat: 'shoulder_acc', equip: 'EZ bar', reps: [10, 12], unit: 'lb', cue: 'Pull to sternum height, elbows lead the way, wrists relaxed.' },
 };
 
 // Demo link: YouTube search never goes stale.

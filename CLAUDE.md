@@ -14,7 +14,8 @@ Luke & Kristen's home-gym workout PWA (648 = their house address). Luke is not a
 
 - **No build step, no framework, no server, no accounts.** Plain HTML/CSS/JS. Each phone stores its own logs in `localStorage` (key `iron_together_v1` — historical name, kept so data survives; never rename it).
 - **Workouts are generated deterministically from the calendar date** (`js/program.js`), so both phones show identical workouts with zero syncing. `PROGRAM_EPOCH` = Monday 2026-07-06, their real start date = Week 1, Foundation block. Don't move it — it would silently reshuffle everyone's current week.
-- Files: `js/exercises.js` (exercise DB + form cues), `js/anims.js` (animated silhouette demo loops for circuit exercises — keyframe poses tweened by a tiny SVG engine; every circuit-pool exercise needs an entry), `js/program.js` (blocks/rotation/progression), `js/cardio.js` (cardio generator), `js/app.js` (all UI). New JS files must be added to `index.html` AND the `ASSETS` list in `sw.js`.
+- Files: `js/exercises.js` (exercise DB + form cues), `js/anims.js` (animated silhouette demo loops — keyframe poses tweened by a tiny SVG engine; EVERY exercise id needs an `ANIMS` entry or an `ANIM_ALIASES` alias to a look-alike), `js/program.js` (blocks/rotation/progression), `js/cardio.js` (cardio generator), `js/app.js` (all UI). New JS files must be added to `index.html` AND the `ASSETS` list in `sw.js`.
+- **Adding an exercise** (Luke asks for these regularly, e.g. from the r/f45 weekly intel posts — Reddit is not fetchable from here, he pastes the text): (1) add the `EXERCISES` entry with a form cue and only equipment he owns, (2) add an `ANIMS` pose set or alias, (3) drop it into the right `POOLS` list(s) in program.js. Note: changing a pool's length reshuffles which exercise the current week picks (deterministic modulo) — deploy early in the week if possible.
 
 ## Program design (the coaching logic)
 
