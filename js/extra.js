@@ -132,13 +132,15 @@ function genExtra(dur, focus, intensity, shuffle) {
   };
   let finisher = null;
   if (inten.finisher && !ph.deload) {
-    const finisherPool = ['burpee', 'devils_press', 'kb_swing_circuit', 'slam_ball', 'row_sprint', 'bike_sprint', 'driveway_run'];
+    const finisherPool = ['burpee', 'devils_press', 'kb_swing_circuit', 'slam_ball', 'row_sprint', 'bike_sprint', 'driveway_full'];
     let finId = 'burpee';
     for (let k = 0; k < finisherPool.length; k++) {
       const id = finisherPool[(seed + k) % finisherPool.length];
       if (!seen.has(id)) { finId = id; break; }
     }
-    finisher = { exId: finId, desc: 'Everyone: 3 rounds of 30s on / 30s off. Then you\'ve earned the walk down the driveway.' };
+    finisher = finId === 'driveway_full'
+      ? { exId: finId, desc: 'Everyone: one full down & back, hard — that\'s ⅓ mile, ~2.5 min. Race it.' }
+      : { exId: finId, desc: 'Everyone: 3 rounds of 30s on / 30s off. Then you\'ve earned the walk down the driveway.' };
   }
 
   const totalSec = base.rounds * base.stations * work + base.rounds * (base.stations - 1) * rest + (base.rounds - 1) * roundBreak;

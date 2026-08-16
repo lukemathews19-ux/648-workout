@@ -36,12 +36,12 @@ const CARDIO_TEMPLATES = [
   { dur: 15, mode: 'rope', title: 'Feet Circuit', steps: ['3 rounds:', '· 3 min jump rope (break as needed)', '· 1 min ladder drills', '· 1 min rest'] },
   { dur: 20, mode: 'rope', title: 'Big Feet Circuit', steps: ['4 rounds:', '· 3 min jump rope (break as needed)', '· 1 min ladder drills', '· 1 min rest'] },
 
-  // driveway (down & back ×3 = 1 mile, so one down-&-back ≈ ⅓ mile)
-  { dur: 10, mode: 'drive', title: 'Driveway Repeats', steps: ['3 × down-&-back at a strong jog', '45s rest between each', 'Down & back ×3 = a mile — you just ran one.'] },
+  // driveway (down & back = ⅓ mile ≈ 2.5 min at a strong pace; ×3 = 1 mile)
+  { dur: 10, mode: 'drive', title: 'Driveway Repeats', steps: ['3 × down-&-back at a strong pace (~2.5 min each)', '30s rest between each', 'Down & back ×3 = a mile — you just ran one.'] },
   { dur: 10, mode: 'drive', title: 'Driveway Sprint Ladder', steps: ['Sprint ¼ of the driveway, walk back', 'Sprint ½, walk back', 'Sprint the full length, walk back', 'Repeat ×2'] },
-  { dur: 15, mode: 'drive', title: 'The Mile', steps: ['1 easy down-&-back to warm up', 'Then 3 × down-&-back at a strong pace — that\'s the mile', '60s rest between each'] },
-  { dur: 20, mode: 'drive', title: 'Driveway + Iron', steps: ['4 rounds:', '· Down & back at a run', '· 15 KB swings at the garage', '· 10 push-ups', 'Rest only as needed.'] },
-  { dur: 30, mode: 'drive', title: 'Driveway 5K-ish', steps: ['9 down-&-backs = 3 miles', 'Steady pace, tick them off one by one', 'Pick it up on the home stretch of every 3rd one.'] },
+  { dur: 15, mode: 'drive', title: 'The Mile + One', steps: ['1 easy down-&-back to warm up', 'Then 3 × down-&-back at a strong pace — that\'s the mile', '60s rest between each. ~13 min all in.'] },
+  { dur: 20, mode: 'drive', title: 'Driveway + Iron', steps: ['3 rounds:', '· Down & back at a run (~2.5 min)', '· 15 KB swings at the garage', '· 10 push-ups', '· 1 min rest'] },
+  { dur: 30, mode: 'drive', title: 'Driveway 5K-ish', steps: ['9 down-&-backs = 3 miles (~2.5 min each)', 'Steady pace, tick them off one by one', 'Pick it up on the home stretch of every 3rd one.'] },
 
   // mixed equipment
   { dur: 10, mode: 'mix', title: 'Triple Threat', steps: ['3 rounds, no rest:', '· 1 min row', '· 1 min bike', '· 1 min jump rope', 'Transition fast — that\'s the workout.'] },

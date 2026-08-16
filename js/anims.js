@@ -864,6 +864,7 @@ const ANIM_ALIASES = {
   curtsy_lunge: 'db_rev_lunge',
   db_squeeze_press: 'db_bench',
   kb_snatch: 'db_snatch',
+  driveway_full: 'driveway_run',
   chin_hold: 'pullup',
   sprawl: 'burpee',
   butterfly_situp: 'situp_abmat',

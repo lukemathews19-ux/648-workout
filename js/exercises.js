@@ -156,7 +156,9 @@ const EXERCISES = {
   staggered_rdl:   { name: 'Staggered-Stance RDL', cat: 'glute', equip: 'Dumbbells', reps: [8, 10], unit: 'lb', cue: 'Kickstand stance, 80% on the front leg, hinge and stretch. Reps per leg.' },
 
   // ---- Extra-session additions ----
-  driveway_run:    { name: 'Driveway Run', cat: 'cond', equip: 'The driveway', reps: [40, 60], unit: 'time', cue: 'Out the garage, down & back hard. Back before the beep — or don\'t, just keep moving.' },
+  // a full down-&-back is ⅓ mile ≈ 2.5 min, so the station version is half the driveway
+  driveway_run:    { name: 'Driveway Half-Sprint', cat: 'cond', equip: 'The driveway', reps: [40, 60], unit: 'time', cue: 'Out the garage to the halfway point and back, hard. Full down & back is 2.5 min — too long for a station, save it for the finisher.' },
+  driveway_full:   { name: 'Driveway Down & Back', cat: 'cond', equip: 'The driveway (⅓ mile)', reps: [120, 180], unit: 'time', cue: 'The full ⅓ mile — about 2.5 min at a strong pace. Down easy-ish, back hard.' },
   kb_snatch:       { name: 'KB Snatch', cat: 'cond', equip: 'Kettlebell', reps: [8, 10], unit: 'lb', cue: 'Swing, pull high, punch through at the top so the bell lands soft. Reps per arm.' },
 };
 

@@ -28,6 +28,10 @@ Luke & Kristen's home-gym workout PWA (648 = their house address). Luke is not a
 - Cardio is **bonus-only, never programmed**: Luke runs with a friend 2-3x/week (5k-ish + a hill day). The cardio generator (10/15/20/30 min; bike/rower/treadmill/rope+ladder/pool/hoops/mix) must never count toward or against the 3 lifting days.
 - Progression nudges compare last session vs rep-range top; +10 lb lower body, +5 lb upper.
 
+## Their driveway
+
+Down & back = ⅓ mile ≈ **2.5 min** at a strong pace (×3 = a mile). Too long for a 40-60s circuit station — `driveway_run` is the *half*-driveway sprint; `driveway_full` (the real ⅓ mile) is finisher/cardio-generator only.
+
 ## Their equipment (only program what they own)
 
 DBs 5-52.5 lb · KBs 10-50 lb · barbell + squat rack with pulleys (lat pulldown, rows, curls, pushdowns) · EZ bar · plates to 45 · incline/decline bench · pull-up bar · bands · slam balls 10-40 · med balls 4-12 · plyo boxes 16/20/24" · bosu · stability balls · ab wheel + mat · rower · Yesoul bike · Sole treadmill · jump rope · agility ladder · cones · push-up stands · foam rollers. Also: swimming pool and basketball goal (Kristen doesn't play basketball).
