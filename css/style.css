@@ -78,6 +78,12 @@ main { padding: 16px; max-width: 640px; margin: 0 auto; }
 .day-tab.selected { border-color: var(--accent); background: var(--card2); }
 .day-tab.done { border-color: var(--accent); }
 .day-tab.done .d-label::after { content: ' ✓'; color: var(--accent); }
+.day-tabs.four { grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; }
+.day-tabs.four .day-tab { padding: 10px 3px; }
+.day-tabs.four .d-sub { font-size: .62rem; }
+.day-tab.extra { border-style: dashed; }
+.day-tab.extra .d-label { color: var(--luke); }
+.day-tab.extra.selected { border-style: solid; border-color: var(--luke); }
 
 /* ---------- Exercise cards ---------- */
 .ex-card { position: relative; }

@@ -154,6 +154,10 @@ const EXERCISES = {
   butterfly_situp: { name: 'Butterfly Sit-Up', cat: 'core', equip: 'Yoga mat', reps: [12, 20], unit: 'bw', cue: 'Soles of your feet together, knees wide, reach past your toes.' },
   heel_elevated_goblet: { name: 'Heel-Elevated Goblet Squat', cat: 'squat', equip: 'KB + plate under heels', reps: [10, 12], unit: 'lb', cue: 'Heels up on a plate, sit straight down — quads on fire.' },
   staggered_rdl:   { name: 'Staggered-Stance RDL', cat: 'glute', equip: 'Dumbbells', reps: [8, 10], unit: 'lb', cue: 'Kickstand stance, 80% on the front leg, hinge and stretch. Reps per leg.' },
+
+  // ---- Extra-session additions ----
+  driveway_run:    { name: 'Driveway Run', cat: 'cond', equip: 'The driveway', reps: [40, 60], unit: 'time', cue: 'Out the garage, down & back hard. Back before the beep — or don\'t, just keep moving.' },
+  kb_snatch:       { name: 'KB Snatch', cat: 'cond', equip: 'Kettlebell', reps: [8, 10], unit: 'lb', cue: 'Swing, pull high, punch through at the top so the bell lands soft. Reps per arm.' },
 };
 
 // Demo link: YouTube search never goes stale.

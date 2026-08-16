@@ -18,6 +18,9 @@ let currentView = 'today';
 let selectedDay = null;   // 'A' | 'B' | 'C'
 let shortMode = false;    // ⚡ 20-minute version of today's workout
 let cardio = { mode: 'any', dur: 20, shuffle: 0, open: false };
+let extra = { dur: 30, focus: 'mix', intensity: 'standard', shuffle: 0 }; // + Extra tab
+let extraDay = null;      // the currently generated extra session (Day-C-shaped)
+const isCircuitDay = () => selectedDay === 'C' || selectedDay === 'X';
 let sessTicker = null;    // interval updating the session clock
 let circuitProgress = 0;  // 0..1, fed by the circuit timer
 let tvOverlay = null;     // 📺 TV-mode overlay element
@@ -169,7 +172,7 @@ function updateSessionBar() {
 }
 function updateProgress() {
   let frac;
-  if (selectedDay === 'C') {
+  if (isCircuitDay()) {
     frac = circuitProgress;
   } else {
     const checks = document.querySelectorAll('.set-check').length;
@@ -193,15 +196,15 @@ function enterTV() {
   exitTV();
   keepAwake(true);
   const plan = buildWeek(new Date());
-  const day = plan.days[selectedDay];
+  const day = selectedDay === 'X' ? extraDay : plan.days[selectedDay];
   const weekLabel = plan.deload ? 'DELOAD WEEK' : `WEEK ${plan.weekOfBlock} OF 4 · ${plan.blockName.toUpperCase()}`;
 
-  if (selectedDay === 'C') {
+  if (isCircuitDay()) {
     tvOverlay = el(`
       <div id="tv-mode">
         <div class="tv-top">
           <button class="tv-exit">✕</button>
-          <div class="tv-title">DAY C · ${esc(day.format.name).toUpperCase()}</div>
+          <div class="tv-title">${selectedDay === 'X' ? 'EXTRA' : 'DAY C'} · ${esc(day.format.name).toUpperCase()}</div>
           <div class="tv-round" id="tv-round"></div>
         </div>
         <div class="tv-cbody" id="tv-cbody"></div>
@@ -246,7 +249,7 @@ function enterTV() {
 
   tvOverlay.querySelector('.tv-exit').onclick = exitTV;
   document.body.appendChild(tvOverlay);
-  if (selectedDay !== 'C') {
+  if (!isCircuitDay()) {
     tvSelEx = null;
     buildTvExList(day.warmup);
     tvSelectDefault();
@@ -444,7 +447,7 @@ function updateTv() {
   const sessEl = tvOverlay.querySelector('#tv-sess');
   if (sessEl) sessEl.textContent = sess ? '⏱ ' + fmtElapsed(Date.now() - sess.startedAt) : '';
 
-  if (selectedDay !== 'C') {
+  if (!isCircuitDay()) {
     // strength board: progress = sets checked (mirrors the phone UI underneath)
     const checks = document.querySelectorAll('#main .set-check').length;
     const done = document.querySelectorAll('#main .set-check.done').length;
@@ -521,7 +524,11 @@ function renderToday() {
   if (!selectedDay) {
     selectedDay = ['A', 'B', 'C'].find(d => !status[d]) || 'A';
   }
-  const day = plan.days[selectedDay];
+  if (selectedDay === 'X') {
+    // regenerate every render so chip changes take effect; same inputs = same circuit
+    extraDay = genExtra(extra.dur, extra.focus, extra.intensity, extra.shuffle);
+  }
+  const day = selectedDay === 'X' ? extraDay : plan.days[selectedDay];
   const v = el('<div class="view active" id="view-today"></div>');
 
   renderRecap(v);
@@ -536,14 +543,25 @@ function renderToday() {
       ${plan.deload ? '<div class="deload-pill">GO ~10% LIGHTER</div>' : `<div class="block-pill">${esc(plan.blockName).toUpperCase()}</div>`}
     </div>`));
 
-  const tabs = el('<div class="day-tabs"></div>');
+  const tabs = el('<div class="day-tabs four"></div>');
   for (const d of ['A', 'B', 'C']) {
     const t = el(`<div class="day-tab ${d === selectedDay ? 'selected' : ''} ${status[d] ? 'done' : ''}">
       <div class="d-label">Day ${d}</div><div class="d-sub">${esc(plan.days[d].title)}</div></div>`);
     t.onclick = () => { selectedDay = d; shortMode = false; render(); };
     tabs.appendChild(t);
   }
+  const xt = el(`<div class="day-tab extra ${selectedDay === 'X' ? 'selected' : ''}">
+    <div class="d-label">+ Extra</div><div class="d-sub">Build a circuit</div></div>`);
+  xt.onclick = () => { selectedDay = 'X'; shortMode = false; render(); };
+  tabs.appendChild(xt);
   v.appendChild(tabs);
+
+  if (selectedDay === 'X') {
+    renderExtraDay(v);
+    renderCardioCard(v);
+    main.appendChild(v);
+    return;
+  }
 
   if (plan.deload) {
     v.appendChild(el(`<div class="card"><h3>😌 Deload week</h3><div class="muted small">Same workouts, ~10% lighter, everything moves fast and feels easy. This is what lets next block's weights go up — don't skip it, don't hero it.</div></div>`));
@@ -601,7 +619,9 @@ function renderRecap(v) {
   const cd = (store.cardio || {})[user] || {};
   const cardioSessions = Object.entries(cd).filter(([iso]) => weekKeyOfIso(iso) === lw).flatMap(([, a]) => a);
   const cardioMin = cardioSessions.reduce((n, s) => n + (s.m || 0), 0);
-  if (!lifts && !cardioSessions.length) return;
+  const xd = (store.extras || {})[user] || {};
+  const extraSessions = Object.entries(xd).filter(([iso]) => weekKeyOfIso(iso) === lw).flatMap(([, a]) => a);
+  if (!lifts && !cardioSessions.length && !extraSessions.length) return;
 
   // PRs: heaviest weight last week vs best-ever before last week
   const bestBefore = {}, bestLast = {};
@@ -627,6 +647,7 @@ function renderRecap(v) {
       <div class="muted small" style="line-height:1.6">
         ${lifts >= 3 ? `<b style="color:var(--accent)">${lifts}/3 lifts — perfect week 🎉</b>` : `${lifts}/3 lifts${lifts ? ' — in the game' : ''}`}<br>
         ${cardioSessions.length ? `🏃 ${cardioSessions.length} bonus cardio session${cardioSessions.length > 1 ? 's' : ''} (${cardioMin} min)<br>` : ''}
+        ${extraSessions.length ? `➕ ${extraSessions.length} extra session${extraSessions.length > 1 ? 's' : ''} — above and beyond<br>` : ''}
         ${prs.length ? `🏆 New bests: ${prs.map(esc).join(' · ')}<br>` : ''}
         ${st > 1 ? `🔥 ${st}-week streak — keep the chain alive` : ''}
       </div>
@@ -811,8 +832,8 @@ function renderStrengthDay(v, day, status) {
 // ----- Multi-person circuit (F45-style staggered stations) -----
 // Everyone rotates on the same beep, offset by one station, so two people
 // never need the same machine at the same time.
-const NAME_CYCLE = ['Luke', 'Kristen', 'Guest 1', 'Guest 2'];
-const PERSON_COLORS = { 'Luke': '#60a5fa', 'Kristen': '#f472b6', 'Guest 1': '#fbbf24', 'Guest 2': '#a78bfa' };
+const NAME_CYCLE = ['Luke', 'Kristen', 'Run Buddy', 'Guest 1', 'Guest 2'];
+const PERSON_COLORS = { 'Luke': '#60a5fa', 'Kristen': '#f472b6', 'Run Buddy': '#34d399', 'Guest 1': '#fbbf24', 'Guest 2': '#a78bfa' };
 function circuitCfg() {
   store.settings.circuit = store.settings.circuit || { people: 1, names: [] };
   const cfg = store.settings.circuit;
@@ -845,7 +866,16 @@ function renderCircuitDay(v, day, status) {
 
   v.appendChild(el(`<div class="card"><h3>🔄 ${esc(fmt.name)}</h3><div class="muted small">${esc(fmt.desc)}. Move station to station — write nothing down, just work. ${user === 'kristen' ? 'Kristen: you\'re done after the last round.' : ''}</div></div>`));
 
-  // 👥 People picker — staggered stations so nobody needs the same machine
+  renderPeoplePicker(v);
+  renderCircuitBody(v, fmt, day.stations, user === 'luke' && !shortMode ? day.finisher : null);
+
+  const done = el(`<button class="btn" ${completed ? 'disabled' : ''}>${completed ? '✓ Workout logged' : '🏁 Finish workout'}</button>`);
+  done.onclick = () => finishWorkout('C');
+  v.appendChild(done);
+}
+
+// 👥 People picker — staggered stations so nobody needs the same machine
+function renderPeoplePicker(v) {
   const pplCard = el('<div class="card"><h3>👥 Who\'s doing the circuit?</h3><div class="pp-body"></div></div>');
   const ppBody = pplCard.querySelector('.pp-body');
   function renderPicker() {
@@ -883,10 +913,13 @@ function renderCircuitDay(v, day, status) {
   }
   renderPicker();
   v.appendChild(pplCard);
+}
 
+// Stations list + finisher + interval timer (shared by Day C and + Extra)
+function renderCircuitBody(v, fmt, stations, finisher) {
   const listCard = el('<div class="card"><h3>Stations</h3><div class="station-list"></div></div>');
   const list = listCard.querySelector('.station-list');
-  day.stations.forEach((exId) => {
+  stations.forEach((exId) => {
     const ex = EXERCISES[exId];
     list.appendChild(el(`
       <div class="station" data-ex="${exId}">
@@ -901,9 +934,9 @@ function renderCircuitDay(v, day, status) {
   });
   v.appendChild(listCard);
 
-  if (user === 'luke' && !shortMode) {
-    const fex = EXERCISES[day.finisher.exId];
-    v.appendChild(el(`<div class="card"><h3>🥵 Finisher: ${esc(fex.name)}</h3><div class="muted small">${esc(day.finisher.desc)}</div><div class="cue">💡 ${esc(fex.cue)}</div></div>`));
+  if (finisher) {
+    const fex = EXERCISES[finisher.exId];
+    v.appendChild(el(`<div class="card"><h3>🥵 Finisher: ${esc(fex.name)}</h3><div class="muted small">${esc(finisher.desc)}</div><div class="cue">💡 ${esc(fex.cue)}</div></div>`));
   }
 
   // Timer card
@@ -925,11 +958,96 @@ function renderCircuitDay(v, day, status) {
       </div>
     </div>`);
   v.appendChild(timer);
-  wireCircuitTimer(timer, fmt, day.stations, listCard);
+  wireCircuitTimer(timer, fmt, stations, listCard);
+}
 
-  const done = el(`<button class="btn" ${completed ? 'disabled' : ''}>${completed ? '✓ Workout logged' : '🏁 Finish workout'}</button>`);
-  done.onclick = () => finishWorkout('C');
+// ----- + Extra: on-demand circuit builder (friend days, 4th sessions) -----
+function renderExtraDay(v) {
+  const x = extraDay;
+  const iso = todayISO();
+  store.extras = store.extras || { luke: {}, kristen: {} };
+  const todayLogged = (store.extras[user] || {})[iso] || [];
+
+  v.appendChild(el(`<div class="card" style="border-color:var(--luke)">
+    <h3>➕ Extra session</h3>
+    <div class="muted small">Doesn't count toward (or against) your 3 program days — this is bonus work for friend days and "I want more" days. Pick a length, a flavor, and how spicy, then hit Start.${todayLogged.length ? ` <b style="color:var(--accent)">${todayLogged.length} logged today ✓</b>` : ''}</div>
+  </div>`));
+
+  // --- controls ---
+  const ctl = el('<div class="card"></div>');
+  const chipRow = (label, opts, cur, onPick) => {
+    const wrap = el(`<div><div class="muted small" style="margin-top:6px">${label}</div><div class="chips"></div></div>`);
+    const chips = wrap.querySelector('.chips');
+    for (const [key, text] of opts) {
+      const c = el(`<button class="chip ${cur === key ? 'on' : ''}">${text}</button>`);
+      c.onclick = () => { onPick(key); extra.shuffle = 0; render(); };
+      chips.appendChild(c);
+    }
+    return wrap;
+  };
+  ctl.appendChild(chipRow('How long?', EXTRA_DURS.map(d => [d, d + ' min']), extra.dur, k => extra.dur = k));
+  ctl.appendChild(chipRow('Flavor', Object.entries(EXTRA_FOCUS).map(([k, f]) => [k, f.label]), extra.focus, k => extra.focus = k));
+  ctl.appendChild(chipRow('Intensity', Object.entries(EXTRA_INTENSITY).map(([k, f]) => [k, f.label]), extra.intensity, k => extra.intensity = k));
+  ctl.appendChild(el(`<div class="muted small" style="margin-top:8px">${esc(EXTRA_FOCUS[extra.focus].blurb)}${extra.intensity === 'hard' ? ' Hard = longer work, shorter rest, shorter water breaks, plus a finisher for everyone.' : ''}</div>`));
+  const shuf = el('<button class="btn secondary" style="margin-top:10px;padding:10px">🔀 Different circuit</button>');
+  shuf.onclick = () => { extra.shuffle++; render(); };
+  ctl.appendChild(shuf);
+  v.appendChild(ctl);
+
+  // --- the session ---
+  v.appendChild(el(`<div class="card"><h3>🔥 Warm-up (~3 min)</h3><div class="muted small">${esc(x.warmup)}</div></div>`));
+
+  if (!sessionLog()) {
+    const sb = el('<button class="btn" style="margin-bottom:12px">▶ Start workout</button>');
+    sb.onclick = () => startWorkoutSession();
+    v.appendChild(sb);
+  }
+  const music = store.settings.playlist;
+  if (music) {
+    const m = el(`<button class="btn secondary" style="margin-bottom:12px">🎵 Start the playlist</button>`);
+    m.onclick = () => window.open(music, '_blank');
+    v.appendChild(m);
+  }
+  const tv = el('<button class="btn secondary" style="margin-bottom:12px">📺 TV mode — big screen for mirroring</button>');
+  tv.onclick = enterTV;
+  v.appendChild(tv);
+
+  v.appendChild(el(`<div class="card"><h3>🔄 ${esc(x.format.name)} <span class="muted small">· ~${x.estMin} min</span></h3>
+    <div class="muted small">${esc(x.format.desc)}. Everyone rotates on the beep.</div>
+    <div class="suggestion ${extraDay.phaseNote.startsWith('Deload') ? 'hold' : ''}" style="margin-top:8px">📈 ${esc(x.phase)} — ${esc(x.phaseNote)}</div>
+  </div>`));
+  renderPeoplePicker(v);
+  renderCircuitBody(v, x.format, x.stations, x.finisher);
+
+  const done = el('<button class="btn">🏁 Finish — log it as bonus</button>');
+  done.onclick = () => finishExtra();
   v.appendChild(done);
+}
+
+function finishExtra() {
+  const x = extraDay;
+  const iso = todayISO();
+  store.extras = store.extras || { luke: {}, kristen: {} };
+  store.extras[user] = store.extras[user] || {};
+  const sess = sessionLog();
+  const durationMin = sess && sess.startedAt ? Math.max(1, Math.round((Date.now() - sess.startedAt) / 60000)) : x.estMin;
+  store.extras[user][iso] = store.extras[user][iso] || [];
+  store.extras[user][iso].push({ t: x.format.name, m: durationMin, focus: x.focus, intensity: x.intensity, people: circuitCfg().people, stations: x.stations });
+  // the in-progress 'X' session log only existed for the clock/wake lock — drop it
+  // so it never shows up as a program day anywhere
+  for (const k of [iso, iso + '#2']) {
+    const l = (store.logs[user] || {})[k];
+    if (l && l.day === 'X') delete store.logs[user][k];
+  }
+  save();
+  keepAwake(false);
+  if (navigator.vibrate) navigator.vibrate([80, 40, 80, 40, 200]);
+  beep(880, 0.25); setTimeout(() => beep(1100, 0.25), 280); setTimeout(() => beep(1320, 0.45), 560);
+  setTimeout(() => beep(1760, 0.8), 950);
+  toast(`➕ ${x.format.name} banked — ${durationMin} min of bonus work.`);
+  extra.shuffle = 0;
+  selectedDay = null;
+  render();
 }
 
 function finishWorkout(dayType) {
@@ -1336,6 +1454,13 @@ function renderProgress() {
     const weekCardio = Object.entries(cd).filter(([iso]) => weekKeyOfIso(iso) === weekKey(new Date())).flatMap(([, a]) => a);
     const totalMin = allCardio.reduce((n, s) => n + (s.m || 0), 0);
     v.appendChild(el(`<div class="card"><h3>🏃 Bonus cardio</h3><div class="muted small">${weekCardio.length ? weekCardio.length + ' session' + (weekCardio.length > 1 ? 's' : '') + ' this week · ' : ''}${allCardio.length} total session${allCardio.length > 1 ? 's' : ''} · ${totalMin} total minutes</div></div>`));
+  }
+  const xd = (store.extras || {})[user] || {};
+  const allExtra = Object.values(xd).flat();
+  if (allExtra.length) {
+    const weekExtra = Object.entries(xd).filter(([iso]) => weekKeyOfIso(iso) === weekKey(new Date())).flatMap(([, a]) => a);
+    const totalMin = allExtra.reduce((n, s) => n + (s.m || 0), 0);
+    v.appendChild(el(`<div class="card"><h3>➕ Extra sessions</h3><div class="muted small">${weekExtra.length ? weekExtra.length + ' this week · ' : ''}${allExtra.length} total · ${totalMin} total minutes</div></div>`));
   }
 
   // 8-week consistency bars

@@ -833,6 +833,14 @@ const ANIMS = {
       { h:[68,83], n:[60,84], p:[44,84], e1:[64,76], w1:[68,70], e2:[54,76], w2:[50,70], k1:[36,70], f1:[28,88], k2:[33,71], f2:[25,88], pr:[{t:'c',x:70,y:68,r:2.6},{t:'c',x:48,y:68,r:2.6}] },
     ],
   },
+  driveway_run: {
+    durs: [260, 260],
+    statics: [{t:'r',x:8,y:60,w:14,h:30},{t:'l',pts:[[8,60],[15,52],[22,60]]}],
+    poses: [
+      { h:[56,26], n:[54,35], p:[50,58], e1:[47,44], w1:[44,50], e2:[60,42], w2:[64,46], k1:[58,66], f1:[60,79], k2:[44,68], f2:[38,84] },
+      { h:[56,26], n:[54,35], p:[50,58], e1:[60,42], w1:[64,46], e2:[47,44], w2:[44,50], k1:[44,68], f1:[40,83], k2:[58,66], f2:[60,79] },
+    ],
+  },
   lying_leg_raise: {
     durs: [500, 550],
     poses: [
@@ -855,6 +863,7 @@ const ANIM_ALIASES = {
   ez_reverse_curl: 'ez_curl',
   curtsy_lunge: 'db_rev_lunge',
   db_squeeze_press: 'db_bench',
+  kb_snatch: 'db_snatch',
   chin_hold: 'pullup',
   sprawl: 'burpee',
   butterfly_situp: 'situp_abmat',
