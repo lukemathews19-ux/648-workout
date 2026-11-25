@@ -31,6 +31,51 @@ const ME_SLEEP_RULES = [
 ];
 const ME_DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+// Meal ideas: high-protein, common household foods. [name, what's in it, ~protein g, dinner weekday]
+const ME_MEALS = {
+  breakfast: [
+    ['Greek yogurt bowl', '1½ cups nonfat Greek yogurt, 1 scoop protein powder, berries, 1 tbsp chia', 45],
+    ['Egg scramble', '2 eggs + 1 cup liquid egg whites, spinach and peppers, salsa, 1 slice sourdough', 40],
+    ['Protein oats', '½ cup oats, 2 scoops protein powder stirred in off the heat, berries, ½ cup cottage cheese', 40],
+    ['Batch egg bites', '3–4 bites (eggs, egg whites, turkey sausage, veggies) plus a piece of fruit', 35],
+    ['Chia protein pudding', 'Made the night before: 2 scoops protein powder, 2 tbsp chia, 1 cup milk. Berries on top', 33],
+    ['Grab and go', 'Ready-to-drink protein shake (Fairlife) + 2 hard-boiled eggs', 42],
+  ],
+  lunch: [
+    ['Chicken rice bowl', '6 oz chicken, ¾ cup rice, roasted veggies, salsa or hot sauce', 50],
+    ['Turkey wrap', '6 oz deli turkey in a high-protein tortilla, cheese stick on the side', 42],
+    ['Tuna or chicken salad', 'Made with Greek yogurt instead of mayo, with cucumbers or crackers', 40],
+    ['Planned leftovers', 'Cook double at dinner, pack it that night', 45],
+    ['Cottage cheese plate', '1 cup cottage cheese, 3 oz turkey or ham, cucumber, tomatoes, crackers', 40],
+  ],
+  dinner: [
+    ['Sheet-pan chicken', 'Chicken breast or thighs, broccoli, peppers, a few potatoes. One pan, 25 min at 425°F', 45, 1],
+    ['Taco bowls', '93% lean ground turkey or beef, black beans, lettuce, salsa, Greek yogurt as sour cream', 45, 2],
+    ['Salmon', '6 oz salmon, rice or a potato, green veg', 40, 3],
+    ['Turkey chili', 'Big bowl: lean turkey, beans, tomatoes. Makes lunches too', 45, 4],
+    ['Burger night', '6 oz 90/10 patty (or 2 smash patties), bun or lettuce wrap, side salad', 40, 5],
+    ['Pork tenderloin', 'Roasted with veg and a sweet potato. Cheap and lean', 45, 6],
+    ['Slow-cooker shredded chicken', 'Chicken + salsa on low 6 hrs. Tacos, bowls, sandwiches all week', 45, 0],
+  ],
+  snacks: [
+    ['Protein shake', '2 scoops protein powder in milk', 29],
+    ['Cottage cheese', '1 cup with pineapple or everything bagel seasoning', 25],
+    ['Meat sticks + cheese', '2 meat sticks and a string cheese', 25],
+    ['High-protein yogurt cup', 'Oikos Pro or similar', 20],
+    ['Turkey roll-ups', 'Deli turkey rolled around pickles', 20],
+    ['Eggs + cheese', '2 hard-boiled eggs and a string cheese', 19],
+    ['Edamame', '1 cup shelled', 17],
+  ],
+  out: [
+    ['Chipotle', 'Bowl: double chicken, fajita veggies, black beans, salsa, lettuce, light or no rice', 60],
+    ['Chick-fil-A', '12-count grilled nuggets + side salad', 38],
+    ['Grocery store', 'Half a rotisserie chicken + bagged salad', 50],
+    ['Gas station', '2 meat sticks + a protein shake + a string cheese', 50],
+  ],
+};
+const ME_MEAL_TABS = [['breakfast', 'Breakfast'], ['lunch', 'Lunch'], ['dinner', 'Dinner'], ['snacks', 'Snacks'], ['out', 'On the road']];
+let meMealTab = null; // opens to whatever meal is next, by time of day
+
 let meCheckWeek = null;  // 'this' | 'last' (check-in card week chips)
 let meEdit = null;       // draft of the compound being added/edited, or null
 let meDelArm = false;    // two-tap delete on the compound form
@@ -275,6 +320,7 @@ function renderMe() {
   const today = todayISO();
   const v = el('<div class="view active" id="view-me"></div>');
   v.appendChild(meTodayCard(today));
+  v.appendChild(meMealCard());
   v.appendChild(meCheckinCard(today));
   v.appendChild(mePeptideCard(today));
   v.appendChild(meRefCard());
@@ -392,6 +438,43 @@ function meTodayCard(today) {
           s.state === 'due' ? '' : 'Off-schedule dose', () => meToggleDose(p.id, today), tag));
       }
     });
+}
+
+// Meal ideas: quick reference, one meal at a time so it stays short
+function meMealCard() {
+  if (!meMealTab) {
+    const h = new Date().getHours() + new Date().getMinutes() / 60;
+    meMealTab = h < 10.5 ? 'breakfast' : h < 14.5 ? 'lunch' : h < 16.5 ? 'snacks' : 'dinner';
+  }
+  const label = ME_MEAL_TABS.find(t => t[0] === meMealTab)[1];
+  return meCard('meals', '🍽️ Meal ideas', `${label} ideas`, false, (body) => {
+    body.appendChild(el('<div class="muted small" style="margin-bottom:2px">Protein first, carbs last. Aim ~40 g breakfast · 45 lunch · 25 snack · 45 dinner.</div>'));
+    const chips = el('<div class="chips"></div>');
+    for (const [k, t] of ME_MEAL_TABS) {
+      const c = el(`<button class="chip ${meMealTab === k ? 'on' : ''}">${t}</button>`);
+      c.onclick = () => { meMealTab = k; render(); };
+      chips.appendChild(c);
+    }
+    body.appendChild(chips);
+    const dow = new Date().getDay();
+    const list = ME_MEALS[meMealTab].slice();
+    if (meMealTab === 'dinner') list.sort((a, b) => ((a[3] - dow + 7) % 7) - ((b[3] - dow + 7) % 7)); // tonight first
+    const wrap = el('<div style="margin-top:6px"></div>');
+    for (const [name, what, g, day] of list) {
+      const tonight = meMealTab === 'dinner' && day === dow;
+      wrap.appendChild(el(`<div class="me-meal">
+        <div class="me-label">${esc(name)}${day != null ? ` <span class="me-tag ${tonight ? 'tonight' : ''}">${tonight ? 'Tonight' : ME_DAY_NAMES[day]}</span>` : ''}
+          <span class="muted small">${esc(what)}</span></div>
+        <div class="me-g">~${g} g</div>
+      </div>`));
+    }
+    body.appendChild(wrap);
+    if (store.me.links.meal) {
+      const b = el('<button class="rest-btn" style="margin-top:10px">Full meal plan + grocery list ↗</button>');
+      b.onclick = () => window.open(store.me.links.meal, '_blank');
+      body.appendChild(b);
+    }
+  });
 }
 
 // 2) Sunday check-in: auto score + body numbers + trends

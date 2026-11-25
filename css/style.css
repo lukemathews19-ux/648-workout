@@ -502,3 +502,7 @@ nav.five button { padding: 4px 8px; }
 .me-del { margin-top: 8px; color: #f87171; }
 .me-rules { margin: 0 0 0 18px; color: var(--muted); font-size: .85rem; line-height: 1.6; }
 .me-mini.wide { width: 44px; font-size: .9rem; }
+.me-meal { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.me-meal:first-child { border-top: 0; }
+.me-g { color: var(--accent); font-weight: 800; font-size: .9rem; white-space: nowrap; }
+.me-tag.tonight { color: var(--accent); border-color: var(--accent); }

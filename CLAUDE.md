@@ -38,6 +38,7 @@ Luke & Kristen's home-gym workout PWA (648 = their house address). Luke is not a
 - Peptide schedules: days of week (default Mon–Fri = 5 on/2 off) or every N days counted from the last checked dose. Start date + length in weeks; blank length = ongoing.
 - Import: a full backup (`logs` present) replaces the store but keeps this phone's `me` if the backup predates it; a `me`-only file is merged by `meMergeSetup()` (match by id, then name) and never touches workout logs.
 - Zone 2 row's 30/45 buttons write a real `store.cardio.luke` entry (mode `z2`), so the recap, Week card and Progress see it. "Last dose" on every-N compounds edits the most recent dose entry. The check-in card force-opens on Sunday until saved (`meCard(..., forceOpen)`; doesn't change the saved open state).
+- **🍽️ Meal ideas card** (2nd card): `ME_MEALS` in me.js, generic high-protein meals from common household foods (no personal data), one chip at a time (Breakfast / Lunch / Dinner / Snacks / On the road). Opens to the next meal by time of day; dinners carry a weekday and tonight's sorts first. Empty Peptides card also offers "📋 Paste setup" (same merge as a setup file).
 - Luke-only touches elsewhere: Week tab Zone 2 card (`user === 'luke'`), Monday recap shows last week's habit score + a check-in shortcut, and the finish screen shows a refuel line (both gated on `meVisible()`).
 
 ## UI notes (Nov 2026 review)
