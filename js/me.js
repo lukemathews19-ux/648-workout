@@ -498,8 +498,45 @@ function mePeptideCard(today) {
       render();
     };
     body.appendChild(add);
+    if (!list.length) mePasteBox(body);
     if (list.length) body.appendChild(el('<div class="muted small" style="margin-top:8px">✓ logs today\'s dose, even off-schedule. "Every N days" compounds count from your last checked dose and show as due until you check them.</div>'));
   });
+}
+
+// Paste a setup (the same JSON as a setup file) straight from a message, since
+// getting a file into an iPhone home-screen app is fiddly. Merges like Import.
+let mePasteOpen = false;
+function mePasteBox(body) {
+  if (!mePasteOpen) {
+    const b = el('<button class="rest-btn" style="margin-top:10px">📋 Paste setup</button>');
+    b.onclick = () => { mePasteOpen = true; render(); };
+    body.appendChild(b);
+    return;
+  }
+  const box = el(`<div class="me-form" style="margin-top:10px">
+    <div style="font-weight:800">Paste setup</div>
+    <div class="muted small" style="margin:4px 0 8px">Paste the setup text you were sent. It fills in compounds and links; nothing else changes.</div>
+    <textarea class="me-input" rows="5" placeholder="{ &quot;me&quot;: … }" style="font-size:.8rem;font-weight:400"></textarea>
+    <div class="me-err"></div>
+    <div class="btn-row" style="margin-top:10px">
+      <button class="btn secondary" data-x>Cancel</button>
+      <button class="btn" data-go>Import</button>
+    </div>
+  </div>`);
+  box.querySelector('[data-x]').onclick = () => { mePasteOpen = false; render(); };
+  box.querySelector('[data-go]').onclick = () => {
+    const err = box.querySelector('.me-err');
+    let data;
+    try { data = JSON.parse(box.querySelector('textarea').value.trim()); } catch (e) { data = null; }
+    const me = data && (data.me || data);
+    if (!me || !(Array.isArray(me.peptides) || me.links)) { err.textContent = 'That doesn\'t look like a setup. Paste the whole text, braces included.'; return; }
+    meMergeSetup(me);
+    mePasteOpen = false;
+    save();
+    toast(`📋 Setup imported: ${store.me.peptides.length} compound${store.me.peptides.length === 1 ? '' : 's'}`);
+    render();
+  };
+  body.appendChild(box);
 }
 
 function mePepForm(body) {

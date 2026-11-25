@@ -1641,7 +1641,7 @@ function renderSettings() {
   };
   card.querySelector('#imp').onclick = () => {
     const inp = document.createElement('input');
-    inp.type = 'file'; inp.accept = '.json';
+    inp.type = 'file'; inp.accept = '.json,application/json,text/plain,.txt';
     inp.onchange = () => {
       const f = inp.files[0]; if (!f) return;
       const rd = new FileReader();
