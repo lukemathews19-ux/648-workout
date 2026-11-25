@@ -578,32 +578,21 @@ function renderToday() {
   v.appendChild(el(`<div class="card"><h3>🔥 Warm-up (~4 min)</h3><div class="muted small">${esc(day.warmup)}</div></div>`));
 
   if (!status[selectedDay] && !sessionLog()) {
-    const sb = el('<button class="btn" style="margin-bottom:12px">▶ Start workout</button>');
+    const sb = el('<button class="btn" style="margin-bottom:8px">▶ Start workout</button>');
     sb.onclick = () => startWorkoutSession();
     v.appendChild(sb);
-    v.appendChild(el('<div class="muted small" style="text-align:center;margin:-6px 0 12px">Starts the clock and keeps your screen awake</div>'));
   }
 
-  const music = store.settings.playlist;
-  if (music) {
-    const m = el(`<button class="btn secondary" style="margin-bottom:12px">🎵 Start the playlist</button>`);
-    m.onclick = () => window.open(music, '_blank');
-    v.appendChild(m);
-  }
-
+  // one compact row of helpers so the first lift sits higher on the screen
+  const quick = [];
+  if (store.settings.playlist) quick.push(['🎵 Playlist', '', () => window.open(store.settings.playlist, '_blank')]);
   // ⚡ 20-minute escape hatch — some beats none
-  if (!status[selectedDay]) {
-    const sm = el(`<button class="btn secondary" style="margin-bottom:12px; ${shortMode ? 'border-color:var(--warn);color:var(--warn)' : ''}">${shortMode ? '⚡ 20-min mode ON — tap for the full workout' : '⚡ Only got 20 minutes?'}</button>`);
-    sm.onclick = () => { shortMode = !shortMode; render(); };
-    v.appendChild(sm);
-    if (shortMode) {
-      v.appendChild(el(`<div class="card" style="border-color:var(--warn)"><h3>⚡ Bare minimum mode</h3><div class="muted small">${selectedDay === 'C' ? 'Two rounds instead of three, no finisher. In and out.' : 'Anchor lifts only, 3 sets each, keep rests ~90s. Done in ~20.'} This still counts as a full workout for the week — a short one beats a skipped one, every time.</div></div>`));
-    }
+  if (!status[selectedDay]) quick.push([shortMode ? '⚡ 20 min ON' : '⚡ 20 min', shortMode ? 'warn' : '', () => { shortMode = !shortMode; render(); }]);
+  quick.push(['📺 TV mode', '', enterTV]);
+  v.appendChild(quickRow(quick));
+  if (shortMode && !status[selectedDay]) {
+    v.appendChild(el(`<div class="card" style="border-color:var(--warn)"><h3>⚡ Bare minimum mode</h3><div class="muted small">${selectedDay === 'C' ? 'Two rounds instead of three, no finisher. In and out.' : 'Anchor lifts only, 3 sets each, keep rests ~90s. Done in ~20.'} This still counts as a full workout for the week — a short one beats a skipped one, every time. Tap ⚡ again for the full workout.</div></div>`));
   }
-
-  const tv = el('<button class="btn secondary" style="margin-bottom:12px">📺 TV mode — big screen for mirroring</button>');
-  tv.onclick = enterTV;
-  v.appendChild(tv);
 
   if (selectedDay === 'C') renderCircuitDay(v, day, status);
   else renderStrengthDay(v, day, status);
@@ -611,6 +600,17 @@ function renderToday() {
   renderCardioCard(v);
 
   main.appendChild(v);
+}
+
+// A row of small equal-width buttons: [label, 'warn' | '', onclick]
+function quickRow(items) {
+  const row = el('<div class="quick-row"></div>');
+  for (const [label, cls, fn] of items) {
+    const b = el(`<button class="qbtn ${cls}">${label}</button>`);
+    b.onclick = fn;
+    row.appendChild(b);
+  }
+  return row;
 }
 
 // ----- Weekly recap card (shows once, first visit of a new week) -----
@@ -647,6 +647,13 @@ function renderRecap(v) {
 
   const name = user === 'luke' ? 'Luke' : 'Kristen';
   const st = streak(user);
+  // Luke's phone: last week's habit score from the Me tab, if he's been using it
+  let meLine = '', meUnsaved = false;
+  if (meVisible() && store.me && store.me.days && meWeekDates(lw).some(d => store.me.days[d])) {
+    const sc = meWeekScore(lw);
+    meUnsaved = !((store.me.checkins || {})[lw] || {}).savedAt;
+    meLine = `📋 Habit score: <b style="color:${sc.score >= 4 ? 'var(--accent)' : 'var(--text)'}">${sc.score}/5</b>${meUnsaved ? ' · check-in not saved yet' : ''}<br>`;
+  }
   const card = el(`
     <div class="card celebrate" style="border-color:var(--accent)">
       <h3>📬 ${name}'s week in review</h3>
@@ -655,14 +662,24 @@ function renderRecap(v) {
         ${cardioSessions.length ? `🏃 ${cardioSessions.length} bonus cardio session${cardioSessions.length > 1 ? 's' : ''} (${cardioMin} min)<br>` : ''}
         ${extraSessions.length ? `➕ ${extraSessions.length} extra session${extraSessions.length > 1 ? 's' : ''} — above and beyond<br>` : ''}
         ${prs.length ? `🏆 New bests: ${prs.map(esc).join(' · ')}<br>` : ''}
+        ${meLine}
         ${st > 1 ? `🔥 ${st}-week streak — keep the chain alive` : ''}
       </div>
-      <button class="btn secondary" style="margin-top:10px;padding:9px">Got it 👍</button>
+      <div class="btn-row" style="margin-top:10px">
+        ${meUnsaved ? '<button class="btn secondary" style="padding:9px" data-me>📋 Do check-in</button>' : ''}
+        <button class="btn secondary" style="padding:9px" data-ok>Got it 👍</button>
+      </div>
     </div>`);
-  card.querySelector('button').onclick = () => {
-    store.settings.recapSeen[user] = cw;
-    save();
-    card.remove();
+  const dismiss = () => { store.settings.recapSeen[user] = cw; save(); card.remove(); };
+  card.querySelector('[data-ok]').onclick = dismiss;
+  const toMe = card.querySelector('[data-me]');
+  if (toMe) toMe.onclick = () => {
+    store.me.open = store.me.open || {};
+    store.me.open.checkin = true;
+    meCheckWeek = 'last';
+    dismiss();
+    currentView = 'me';
+    render();
   };
   v.appendChild(card);
 }
@@ -1023,19 +1040,14 @@ function renderExtraDay(v) {
   v.appendChild(el(`<div class="card"><h3>🔥 Warm-up (~3 min)</h3><div class="muted small">${esc(x.warmup)}</div></div>`));
 
   if (!sessionLog()) {
-    const sb = el('<button class="btn" style="margin-bottom:12px">▶ Start workout</button>');
+    const sb = el('<button class="btn" style="margin-bottom:8px">▶ Start workout</button>');
     sb.onclick = () => startWorkoutSession();
     v.appendChild(sb);
   }
-  const music = store.settings.playlist;
-  if (music) {
-    const m = el(`<button class="btn secondary" style="margin-bottom:12px">🎵 Start the playlist</button>`);
-    m.onclick = () => window.open(music, '_blank');
-    v.appendChild(m);
-  }
-  const tv = el('<button class="btn secondary" style="margin-bottom:12px">📺 TV mode — big screen for mirroring</button>');
-  tv.onclick = enterTV;
-  v.appendChild(tv);
+  const quick = [];
+  if (store.settings.playlist) quick.push(['🎵 Playlist', '', () => window.open(store.settings.playlist, '_blank')]);
+  quick.push(['📺 TV mode', '', enterTV]);
+  v.appendChild(quickRow(quick));
 
   v.appendChild(el(`<div class="card"><h3>🔄 ${esc(x.format.name)} <span class="muted small">· ~${x.estMin} min</span></h3>
     <div class="muted small">${esc(x.format.desc)}. Everyone rotates on the beep.</div>
@@ -1118,6 +1130,7 @@ function showCelebration(dayType, log) {
       <div class="c-emoji">${perfect ? '🏆' : '💪'}</div>
       <h2>${line}</h2>
       <div class="c-stats">Way to go, ${name}.<br>${stats.join(' &nbsp;·&nbsp; ')}</div>
+      ${meVisible() ? '<div class="c-tip">🥩 Breakfast within the hour, protein first.<br>Lift is checked off on your Me tab.</div>' : ''}
       <button class="btn">Done 🙌</button>
     </div>`);
   // confetti burst
@@ -1450,6 +1463,23 @@ function renderWeek() {
       </div>`));
   }
 
+  // Luke's Tue/Thu Zone 2 (logged in Quick cardio or the Me tab; never counts toward 3/3)
+  if (user === 'luke') {
+    const cd = (store.cardio || {}).luke || {};
+    const z2Days = Object.entries(cd).filter(([iso, a]) => weekKeyOfIso(iso) === plan.weekKey && a.some(s => s.mode === 'z2')).map(([iso]) => iso).sort();
+    const n = Math.min(2, z2Days.length);
+    v.appendChild(el(`
+      <div class="card">
+        <div class="wk-day">
+          <div class="wk-badge ${n >= 2 ? 'done' : ''}">💚</div>
+          <div style="flex:1">
+            <div style="font-weight:800">Zone 2 <span class="muted small">· ${n}/2 this week${z2Days.length ? ' · ' + z2Days.map(d => fmtDate(d)).join(', ') : ''}</span></div>
+            <div class="muted small" style="margin-top:4px">Tue + Thu on the Greenway, 35–45 min at talking pace. Log it in Quick cardio or on the Me tab.</div>
+          </div>
+        </div>
+      </div>`));
+  }
+
   // next week preview
   const next = buildWeek(new Date(Date.now() + 7 * 24 * 3600 * 1000));
   v.appendChild(el(`<div class="card">
@@ -1512,24 +1542,32 @@ function renderProgress() {
       }
     }
   }
-  const exCard = el('<div class="card"><h3>Lift history</h3></div>');
-  const exIds = Object.keys(byEx).sort((a, b) => EXERCISES[a].name.localeCompare(EXERCISES[b].name));
-  if (!exIds.length) {
-    exCard.appendChild(el('<div class="muted small">Log a workout and your lifts will show up here with trend lines.</div>'));
-  }
-  for (const exId of exIds) {
+  // ⭐ Anchor lifts first: they're the signal that strength (and muscle) is
+  // holding. This block's four lead, then past blocks' anchors. Everything else
+  // folds into a collapsed list so the screen stays short.
+  const plan = buildWeek(new Date());
+  const curAnchors = Object.values(BLOCKS[plan.block].anchors);
+  const allAnchors = [...new Set([...curAnchors, ...BLOCKS.flatMap(b => Object.values(b.anchors))])];
+  const anchorIds = allAnchors.filter(id => byEx[id]);
+  const otherIds = Object.keys(byEx).filter(id => !allAnchors.includes(id))
+    .sort((a, b) => EXERCISES[a].name.localeCompare(EXERCISES[b].name));
+
+  const historyRow = (exId, withSpark) => {
     const hist = byEx[exId].sort((a, b) => a.iso.localeCompare(b.iso));
     const latest = hist[hist.length - 1];
     const isLb = EXERCISES[exId].unit === 'lb';
+    const vals = hist.map(h => isLb ? h.best : h.bestReps);
+    const delta = vals[vals.length - 1] - vals[0];
+    const tag = curAnchors.includes(exId) ? ' <span class="eh-now">THIS BLOCK</span>' : '';
     const row = el(`
       <div class="ex-history">
         <div class="eh-head">
-          <div class="eh-name">${esc(EXERCISES[exId].name)}</div>
+          <div class="eh-name">${esc(EXERCISES[exId].name)}${tag}</div>
           <div class="eh-last">${isLb ? latest.best + ' lb' : latest.bestReps + ' reps'}</div>
         </div>
+        ${withSpark && hist.length >= 2 ? `<div class="eh-delta">${delta > 0 ? '+' : delta < 0 ? '−' : '±'}${Math.abs(delta)} ${isLb ? 'lb' : 'reps'} since ${fmtDate(hist[0].iso)}</div>` : ''}
       </div>`);
-    if (hist.length >= 2) {
-      const vals = hist.map(h => isLb ? h.best : h.bestReps);
+    if (withSpark && hist.length >= 2) {
       const min = Math.min(...vals), max = Math.max(...vals);
       const range = (max - min) || 1;
       const pts = vals.map((val, i) => {
@@ -1541,11 +1579,29 @@ function renderProgress() {
         <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>`));
     }
-    exCard.appendChild(row);
+    return row;
+  };
+
+  const exCard = el('<div class="card"><h3>⭐ Anchor lifts</h3></div>');
+  if (!anchorIds.length) {
+    exCard.appendChild(el('<div class="muted small">Log a workout and your anchor lifts will show up here with trend lines.</div>'));
+  } else {
+    exCard.appendChild(el('<div class="muted small" style="margin-bottom:2px">Top weight each session. Flat or rising = strength holding.</div>'));
   }
+  for (const exId of anchorIds) exCard.appendChild(historyRow(exId, true));
   v.appendChild(exCard);
+
+  if (otherIds.length) {
+    const other = el(`<div class="card">
+      <div class="eh-head eh-toggle"><h3 style="margin:0">All other lifts <span class="muted small">· ${otherIds.length}</span></h3><span class="muted">${progressShowAll ? '▴' : '▾'}</span></div>
+    </div>`);
+    other.querySelector('.eh-toggle').onclick = () => { progressShowAll = !progressShowAll; render(); };
+    if (progressShowAll) for (const exId of otherIds) other.appendChild(historyRow(exId, true));
+    v.appendChild(other);
+  }
   main.appendChild(v);
 }
+let progressShowAll = false; // Progress tab: "All other lifts" expanded?
 
 // ----- SETTINGS -----
 function renderSettings() {

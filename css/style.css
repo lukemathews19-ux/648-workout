@@ -137,6 +137,12 @@ main { padding: 16px; max-width: 640px; margin: 0 auto; }
 .btn:disabled { opacity: .45; }
 .btn-row { display: flex; gap: 8px; }
 .btn-row .btn { flex: 1; }
+.quick-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.qbtn {
+  flex: 1; background: var(--card2); border: 1px solid var(--line); color: var(--text);
+  border-radius: 12px; padding: 11px 6px; font-size: .85rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.qbtn.warn { border-color: var(--warn); color: var(--warn); }
 
 /* ---------- Circuit / timer ---------- */
 .station-list { counter-reset: st; }
@@ -198,6 +204,9 @@ main { padding: 16px; max-width: 640px; margin: 0 auto; }
 .ex-history .eh-name { font-weight: 700; font-size: .9rem; }
 .ex-history .eh-last { color: var(--accent); font-size: .85rem; font-weight: 700; }
 .sparkline { margin-top: 8px; width: 100%; height: 46px; }
+.eh-delta { color: var(--muted); font-size: .72rem; margin-top: 2px; }
+.eh-now { color: var(--accent); font-size: .6rem; font-weight: 800; letter-spacing: .5px; margin-left: 4px; }
+.eh-toggle { cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
 
 /* ---------- Settings ---------- */
 .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); gap: 10px; }
@@ -225,6 +234,7 @@ main { padding: 16px; max-width: 640px; margin: 0 auto; }
   display: flex; align-items: center; gap: 12px;
   padding: 9px 16px;
 }
+#session-bar[hidden] { display: none; } /* only during a workout; display:flex above would override [hidden] */
 body.with-session { padding-bottom: 128px; }
 #sess-time { font-variant-numeric: tabular-nums; font-weight: 800; font-size: .9rem; color: var(--accent); min-width: 44px; }
 .prog-track { flex: 1; height: 9px; border-radius: 99px; background: var(--card2); border: 1px solid var(--line); overflow: hidden; }
@@ -392,6 +402,7 @@ body.with-session { padding-bottom: 128px; }
 #celebration .c-stats { color: var(--muted); font-size: .95rem; line-height: 1.7; margin-bottom: 22px; }
 #celebration .c-stats b { color: var(--text); }
 #celebration .btn { max-width: 280px; }
+#celebration .c-tip { color: var(--accent); font-size: .9rem; font-weight: 700; line-height: 1.5; margin: -8px 0 20px; }
 .confetti {
   position: absolute; top: -8%; font-size: 1.5rem; pointer-events: none;
   animation: confetti-fall linear forwards;
@@ -490,3 +501,4 @@ nav.five button { padding: 4px 8px; }
 .me-err { color: #f87171; font-size: .8rem; font-weight: 700; margin-top: 8px; min-height: 1em; }
 .me-del { margin-top: 8px; color: #f87171; }
 .me-rules { margin: 0 0 0 18px; color: var(--muted); font-size: .85rem; line-height: 1.6; }
+.me-mini.wide { width: 44px; font-size: .9rem; }

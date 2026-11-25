@@ -15,6 +15,7 @@ Luke & Kristen's home-gym lifting program and tracker. No accounts, no subscript
 - **🏋️ Day C heavy pair (Luke)** — after (or before) the circuit, 3 heavy sets of two of the block's anchor lifts, alternating weekly. Each big lift gets a second heavy day, which protects muscle while cutting.
 - **🏃 Quick cardio generator** — bottom of the Today tab. Pick 10/15/20/30/45 min and a toy (💚 Zone 2, bike, rower, treadmill, rope + ladder, pool, hoops, or a mix) and it hands you a workout. Luke logs his Tue/Thu Zone 2 here. Logged separately as bonus work — it never counts toward (or against) the 3 lifting days.
 - **📬 Weekly recap** — first open of a new week shows last week's report card: lifts done, bonus cardio, new PRs, streak.
+- **🙋 Me tab (Luke's phone only)** — daily habit checks, a Sunday check-in with an auto score out of 5 and trend lines, a dose tracker, and quick reference. Everything in it is typed in on the phone and never leaves it; none of it is in this repo.
 
 Each phone stores its own logs (in the browser's local storage). The weekly workout is computed from the calendar, so both phones always show the same plan without syncing anything.
 

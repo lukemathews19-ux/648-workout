@@ -37,6 +37,14 @@ Luke & Kristen's home-gym workout PWA (648 = their house address). Luke is not a
 - Training check is read from the workout log (finished A/B/C day, or a 💚 Zone 2 cardio log); a tap stores a manual override in `days[iso].move`. Score: lift 3 + Zone 2 2 (from logs) · protein and sleep 6 of 7 days · alcohol 7 of 7.
 - Peptide schedules: days of week (default Mon–Fri = 5 on/2 off) or every N days counted from the last checked dose. Start date + length in weeks; blank length = ongoing.
 - Import: a full backup (`logs` present) replaces the store but keeps this phone's `me` if the backup predates it; a `me`-only file is merged by `meMergeSetup()` (match by id, then name) and never touches workout logs.
+- Zone 2 row's 30/45 buttons write a real `store.cardio.luke` entry (mode `z2`), so the recap, Week card and Progress see it. "Last dose" on every-N compounds edits the most recent dose entry. The check-in card force-opens on Sunday until saved (`meCard(..., forceOpen)`; doesn't change the saved open state).
+- Luke-only touches elsewhere: Week tab Zone 2 card (`user === 'luke'`), Monday recap shows last week's habit score + a check-in shortcut, and the finish screen shows a refuel line (both gated on `meVisible()`).
+
+## UI notes (Nov 2026 review)
+
+- `#session-bar` only shows during a workout. Its CSS is `display:flex`, so `#session-bar[hidden] { display:none }` is what makes `bar.hidden = true` work. Don't drop it.
+- Today/Extra: Start workout stays full width; Playlist / ⚡ 20 min / 📺 TV live in one `quickRow()` so the first lift is above the fold.
+- Progress: ⭐ anchor lifts first (this block's tagged), with sparkline + change since first log; every other lift is in a collapsed "All other lifts" card (`progressShowAll`, not persisted).
 
 ## Their driveway
 

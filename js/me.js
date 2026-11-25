@@ -238,12 +238,20 @@ function meMergeSetup(inc) {
 }
 
 // ---------- UI building blocks ----------
-function meCard(key, title, summary, hot, build) {
-  const open = !!store.me.open[key];
+// forceOpen: opens the card for this visit (e.g. check-in on Sunday) without
+// changing the saved open/closed choice; tapping the header closes it again.
+let meAutoClosed = {};
+function meCard(key, title, summary, hot, build, forceOpen) {
+  const forced = forceOpen && !store.me.open[key] && !meAutoClosed[key];
+  const open = forced || !!store.me.open[key];
   const card = el(`<div class="card me-card ${open ? 'open' : ''}">
     <div class="me-head"><h3>${title}</h3><div class="me-sum ${hot ? 'hot' : ''}">${summary} <span class="me-chev">▾</span></div></div>
   </div>`);
-  card.querySelector('.me-head').onclick = () => { store.me.open[key] = !open; save(); render(); };
+  card.querySelector('.me-head').onclick = () => {
+    if (forced) meAutoClosed[key] = true;
+    else { store.me.open[key] = !open; save(); }
+    render();
+  };
   if (open) {
     const body = el('<div class="me-body"></div>');
     build(body);
@@ -311,18 +319,35 @@ function meTodayCard(today) {
           sub = auto ? (meLiftLogged(today) ? 'Checked from your workout log' : '3/3 lifts done this week')
             : next ? esc(plan.days[next].title) : '';
         } else if (type === 'z2') {
-          label = '💚 Zone 2 · 35–45 min';
-          sub = auto ? 'Checked from your cardio log' : 'Log it in Quick cardio (💚 Zone 2) or tap here';
+          label = '💚 Zone 2 · Greenway';
+          sub = auto ? 'Logged in your cardio ✓' : 'Tap 30 or 45 to log it';
         } else {
           label = '🚶 Walk, hike or intervals';
           sub = 'Bonus, not scored';
         }
-        body.appendChild(meCheckRow(meMoveDone(today), label, sub, () => {
+        // Zone 2 not logged yet: 30/45 buttons write a real 💚 Zone 2 cardio log,
+        // so it also shows in the weekly recap, Week tab and Progress
+        const z2Btns = type === 'z2' && !meMoveDone(today)
+          ? '<div class="me-count"><button class="me-mini wide" data-m="30">30</button><button class="me-mini wide" data-m="45">45</button></div>' : '';
+        const trow = meCheckRow(meMoveDone(today), label, sub, () => {
           const day = meDaySet(today);
           const nv = !meMoveDone(today);
           if (nv === meMoveAuto(today)) delete day.move; else day.move = nv;
           save(); render();
-        }));
+        }, z2Btns);
+        trow.querySelectorAll('[data-m]').forEach(b => b.onclick = (e) => {
+          e.stopPropagation();
+          const m = Number(b.dataset.m);
+          store.cardio = store.cardio || { luke: {}, kristen: {} };
+          store.cardio.luke = store.cardio.luke || {};
+          (store.cardio.luke[today] = store.cardio.luke[today] || []).push({ t: m === 45 ? 'Zone 2 · Long Greenway' : 'Zone 2 · Greenway', m, mode: 'z2' });
+          const day = meDaySet(today);
+          delete day.move;
+          save();
+          toast(`💚 ${m} min of Zone 2 logged`);
+          render();
+        });
+        body.appendChild(trow);
       }
 
       body.appendChild(meCheckRow(d.protein, '🥩 Protein ~160 g', '', tog('protein')));
@@ -438,7 +463,7 @@ function meCheckinCard(today) {
       render();
     };
     body.appendChild(btn);
-  });
+  }, isSunday && !savedThis);
 }
 
 // 3) Peptide tracker
@@ -518,10 +543,15 @@ function mePepForm(body) {
 
   const sched = f.querySelector('#mf-sched');
   if (d.mode === 'every') {
-    const w = el(`<div><label>Every how many days?</label>
-      <input type="number" inputmode="numeric" class="me-input" data-f="every" value="${d.every || 7}" style="width:110px">
-      <div class="muted small" style="margin-top:6px">Counted from your last checked dose, so a late dose resets the clock.</div></div>`);
-    w.querySelector('input').addEventListener('input', (e) => { d.every = e.target.value; });
+    if (d.last === undefined) d.last = d.origLast = (d.id && meLastDose(d.id, '9999-12-31')) || '';
+    const w = el(`<div><div class="me-two">
+        <div><label>Every how many days?</label>
+          <input type="number" inputmode="numeric" class="me-input" data-k="every" value="${d.every || 7}"></div>
+        <div><label>Last dose (optional)</label>
+          <input type="date" class="me-input" data-k="last" value="${esc(d.last || '')}"></div>
+      </div>
+      <div class="muted small" style="margin-top:6px">Counted from your last dose, so a late dose resets the clock. Set the last dose once if you've already started.</div></div>`);
+    w.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => { d[inp.dataset.k] = inp.value; }));
     sched.appendChild(w);
   } else {
     const days = d.days = d.days || [];
@@ -558,6 +588,14 @@ function mePepForm(body) {
       start: d.start || todayISO(), weeks: weeks >= 1 ? weeks : '',
     };
     if (p.mode === 'every') p.every = every; else p.days = d.days.slice().sort((a, b) => a - b);
+    // "Last dose" edits the most recent dose entry, which anchors the countdown
+    if (p.mode === 'every' && (d.last || '') !== (d.origLast || '') && !(d.last > todayISO())) {
+      if (d.origLast && store.me.doses[d.origLast]) {
+        delete store.me.doses[d.origLast][p.id];
+        if (!Object.keys(store.me.doses[d.origLast]).length) delete store.me.doses[d.origLast];
+      }
+      if (d.last) (store.me.doses[d.last] = store.me.doses[d.last] || {})[p.id] = true;
+    }
     const i = store.me.peptides.findIndex(x => x.id === p.id);
     if (i >= 0) store.me.peptides[i] = p; else store.me.peptides.push(p);
     meEdit = null; meDelArm = false;
