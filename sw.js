@@ -14,9 +14,11 @@ self.addEventListener('activate', (e) => {
 });
 
 // Network-first everywhere so app updates always land; cache is the offline fallback.
+// cache: 'no-cache' makes the browser re-check with GitHub Pages every time instead
+// of reusing its own 10-minute HTTP cache, so a fresh deploy shows on the next open.
 self.addEventListener('fetch', (e) => {
   e.respondWith(
-    fetch(e.request).then(res => {
+    fetch(e.request, { cache: 'no-cache' }).then(res => {
       if (res.ok && e.request.url.startsWith(self.location.origin)) {
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put(e.request, copy));
