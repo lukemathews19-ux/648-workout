@@ -29,6 +29,15 @@ Luke & Kristen's home-gym workout PWA (648 = their house address). Luke is not a
 - Cardio is **bonus-only, never programmed**: Luke does Zone 2 Tue/Thu on the Greenway and logs it with the 💚 Zone 2 mode (30/45 min). The cardio generator (10/15/20/30/45 min; Zone 2/bike/rower/treadmill/rope+ladder/pool/hoops/mix) must never count toward or against the 3 lifting days.
 - Progression nudges compare last session vs rep-range top; +10 lb for barbell lower-body lifts, +5 lb for everything else (DB/KB lower body included).
 
+## 🙋 Me tab (Luke only, `js/me.js`, Nov 2026)
+
+- Luke's personal plan hub: four collapsible cards. **Today** (daily habit taps: training, protein, sleep, alcohol + drink counter, morning weight, doses due), **Sunday check-in** (auto score /5, 7-day avg weight, waist, Hume BF%, drinks, 8-week trends), **Peptides** (compound tracker), **Reference** (sleep rules + doc links).
+- Visible only when the header is on Luke **and** More → "This phone belongs to" = Luke. Kristen's app must stay pixel-identical (nav button is `hidden`; `meVisible()` gates it).
+- **PRIVACY: the repo is public. Never put Luke's compounds, doses, body numbers, labs or doc links in code.** All of it is typed in on his phone (or imported from a setup file sent outside the repo) and stored in `store.me` inside `iron_together_v1`. Schema is documented at the top of `js/me.js`.
+- Training check is read from the workout log (finished A/B/C day, or a 💚 Zone 2 cardio log); a tap stores a manual override in `days[iso].move`. Score: lift 3 + Zone 2 2 (from logs) · protein and sleep 6 of 7 days · alcohol 7 of 7.
+- Peptide schedules: days of week (default Mon–Fri = 5 on/2 off) or every N days counted from the last checked dose. Start date + length in weeks; blank length = ongoing.
+- Import: a full backup (`logs` present) replaces the store but keeps this phone's `me` if the backup predates it; a `me`-only file is merged by `meMergeSetup()` (match by id, then name) and never touches workout logs.
+
 ## Their driveway
 
 Down & back = ⅓ mile ≈ **2.5 min** at a strong pace (×3 = a mile). Too long for a 40-60s circuit station — `driveway_run` is the *half*-driveway sprint; `driveway_full` (the real ⅓ mile) is finisher/cardio-generator only.

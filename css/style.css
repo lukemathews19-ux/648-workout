@@ -428,3 +428,65 @@ nav button.active { color: var(--accent); }
 
 .celebrate { animation: pop .4s ease; }
 @keyframes pop { 0% { transform: scale(.96); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+
+/* ---------- 🙋 Me tab (Luke's phone only, js/me.js) ---------- */
+nav button[hidden] { display: none; }
+nav.five button { padding: 4px 8px; }
+.me-card { padding: 0; }
+.me-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px; cursor: pointer; }
+.card .me-head h3 { margin: 0; }
+.me-sum { color: var(--muted); font-size: .8rem; font-weight: 700; white-space: nowrap; }
+.me-sum.hot { color: var(--accent); }
+.me-chev { display: inline-block; margin-left: 4px; transition: transform .15s ease; }
+.me-card.open .me-chev { transform: rotate(180deg); }
+.me-body { padding: 0 14px 14px; }
+.me-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid var(--line); cursor: pointer; }
+.me-row.static { cursor: default; }
+.me-check, .me-check-btn {
+  width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--line); background: var(--card2);
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: .95rem; color: transparent; cursor: pointer;
+}
+.me-row.on .me-check, .me-check-btn.on { background: var(--accent); border-color: var(--accent); color: #0b1320; }
+.me-check.rest, .me-check.scale { color: var(--text); border-style: dashed; font-size: .9rem; }
+.me-label { flex: 1; min-width: 0; font-weight: 700; font-size: .92rem; }
+.me-label .muted { display: block; font-weight: 400; margin-top: 2px; }
+.me-tag { display: inline-block; font-size: .66rem; font-weight: 800; color: var(--muted); background: var(--card2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; margin-left: 4px; }
+.me-tag.late { color: var(--warn); border-color: var(--warn); }
+.me-count { display: flex; gap: 6px; }
+.me-mini {
+  width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--card2);
+  color: var(--text); font-size: 1.1rem; font-weight: 800; cursor: pointer; flex-shrink: 0;
+}
+.me-input {
+  width: 100%; background: var(--card2); border: 1px solid var(--line); color: var(--text); color-scheme: dark;
+  border-radius: 10px; padding: 9px 10px; font-size: 1rem; font-weight: 700; font-family: inherit;
+}
+.me-input:focus { outline: none; border-color: var(--accent); }
+.me-input::placeholder { color: #4a5568; font-weight: 400; }
+.me-num { width: 92px; text-align: center; flex-shrink: 0; }
+.me-section { color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; padding: 14px 0 4px; }
+.me-score { display: flex; align-items: baseline; gap: 8px; margin-top: 10px; }
+.me-score .big { font-size: 2rem; font-weight: 800; }
+.me-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.me-pill { font-size: .75rem; font-weight: 800; border-radius: 999px; padding: 4px 10px; background: var(--card2); border: 1px solid var(--line); color: var(--muted); }
+.me-pill.yes { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+.me-pill.no { background: #3b1219; border-color: #f87171; color: #f87171; }
+.me-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.me-tile { background: var(--card2); border: 1px solid var(--line); border-radius: 12px; padding: 10px; min-width: 0; }
+.me-tile .lbl { color: var(--muted); font-size: .7rem; font-weight: 700; }
+.me-tile .val { font-size: 1.3rem; font-weight: 800; margin-top: 2px; }
+.me-tile .me-input { margin-top: 4px; padding: 6px 8px; background: var(--card); }
+.me-spark { height: 26px; margin-top: 6px; }
+.me-delta { font-size: .7rem; color: var(--muted); margin-top: 2px; }
+.me-pep { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); }
+.me-pep:first-child { border-top: 0; }
+.me-pep.done-pep { opacity: .5; }
+.me-form { background: var(--card2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.me-form label { display: block; color: var(--muted); font-size: .75rem; font-weight: 700; margin: 12px 0 4px; }
+.me-form .me-input { background: var(--card); }
+.me-dow .chip { min-width: 40px; padding: 8px 0; text-align: center; }
+.me-two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.me-err { color: #f87171; font-size: .8rem; font-weight: 700; margin-top: 8px; min-height: 1em; }
+.me-del { margin-top: 8px; color: #f87171; }
+.me-rules { margin: 0 0 0 18px; color: var(--muted); font-size: .85rem; line-height: 1.6; }

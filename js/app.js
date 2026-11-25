@@ -116,6 +116,11 @@ function ensureDayLog(u, iso, dayType) {
 const main = document.getElementById('main');
 
 function render() {
+  // Me tab (js/me.js): Luke's phone + Luke selected only; Kristen's nav is unchanged
+  const showMe = meVisible();
+  document.querySelector('nav button[data-view="me"]').hidden = !showMe;
+  document.querySelector('nav').classList.toggle('five', showMe);
+  if (currentView === 'me' && !showMe) currentView = 'today';
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.view === currentView));
   const luke = document.getElementById('u-luke'), kristen = document.getElementById('u-kristen');
   luke.className = user === 'luke' ? 'active-luke' : '';
@@ -124,6 +129,7 @@ function render() {
   if (currentView === 'today') renderToday();
   else if (currentView === 'week') renderWeek();
   else if (currentView === 'progress') renderProgress();
+  else if (currentView === 'me') renderMe();
   else renderSettings();
   updateSessionBar();
 }
@@ -1586,8 +1592,17 @@ function renderSettings() {
       rd.onload = () => {
         try {
           const data = JSON.parse(rd.result);
-          if (!data.logs) throw new Error('bad file');
-          store = data; save(); toast('Backup restored ✓'); render();
+          if (data.logs) {
+            // full backup. Older backups predate the Me tab: keep this phone's Me data
+            if (!data.me && store.me) data.me = store.me;
+            store = data; save(); toast('Backup restored ✓'); render();
+          } else if (data.me) {
+            // Me setup file: merges into the Me tab, never touches workout logs
+            meMergeSetup(data.me); save();
+            toast(meVisible() ? 'Me setup imported ✓' : 'Me setup imported. It shows on Luke\'s phone.');
+            if (meVisible()) currentView = 'me';
+            render();
+          } else throw new Error('bad file');
         } catch (err) { toast('That file doesn\'t look like a backup.'); }
       };
       rd.readAsText(f);
