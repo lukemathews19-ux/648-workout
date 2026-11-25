@@ -670,7 +670,7 @@ function renderCardioCard(v) {
   const card = el(`<div class="card" style="margin-top:16px"><h3>🏃 Quick cardio ${todayLogged.length ? '<span class="muted small">· ' + todayLogged.length + ' logged today ✓</span>' : ''}</h3></div>`);
 
   if (!cardio.open) {
-    card.appendChild(el('<div class="muted small" style="margin-bottom:10px">Bonus, not homework — your running covers the base. Grab one when you want an engine hit.</div>'));
+    card.appendChild(el(`<div class="muted small" style="margin-bottom:10px">${user === 'luke' ? 'Log your Tue/Thu Zone 2 here (💚 Zone 2, 30 or 45 min). It shows up in your weekly recap but never counts toward the 3 lifting days.' : 'Bonus, not homework. Grab one when you want an engine hit.'}</div>`));
     const open = el('<button class="btn secondary" style="padding:10px">Give me a workout</button>');
     open.onclick = () => { cardio.open = true; cardio.shuffle = 0; render(); };
     card.appendChild(open);
@@ -678,7 +678,7 @@ function renderCardioCard(v) {
     return;
   }
 
-  const durs = [10, 15, 20, 30];
+  const durs = [10, 15, 20, 30, 45];
   const durChips = el('<div class="chips"></div>');
   durs.forEach(d => {
     const c = el(`<button class="chip ${cardio.dur === d ? 'on' : ''}">${d} min</button>`);
@@ -691,7 +691,8 @@ function renderCardioCard(v) {
   const modes = { any: { label: '✨ Surprise me' }, ...CARDIO_MODES };
   for (const [key, m] of Object.entries(modes)) {
     const c = el(`<button class="chip ${cardio.mode === key ? 'on' : ''}">${m.label}</button>`);
-    c.onclick = () => { cardio.mode = key; cardio.shuffle = 0; render(); };
+    // Zone 2 only comes in 30/45 min, so jump to 30 if a shorter time is picked
+    c.onclick = () => { cardio.mode = key; if (key === 'z2' && cardio.dur < 30) cardio.dur = 30; cardio.shuffle = 0; render(); };
     modeChips.appendChild(c);
   }
   card.appendChild(modeChips);
@@ -735,98 +736,109 @@ function renderStrengthDay(v, day, status) {
   let lastSuperset = null;
 
   for (const slot of slots) {
-    const ex = EXERCISES[slot.exId];
     const nSets = shortMode ? Math.min(3, slot.sets[user]) : slot.sets[user];
-    const saved = entries[slot.exId] || [];
-    const last = lastSession(user, slot.exId);
-    const sug = last ? suggestProgress(last.sets, slot.reps, slot.exId) : null;
 
     if (slot.superset && slot.superset !== lastSuperset) {
       v.appendChild(el(`<div class="muted small" style="margin:2px 4px 8px">↔️ ${supersetNames[slot.superset] || 'Superset'}</div>`));
     }
     lastSuperset = slot.superset || null;
 
-    const card = el(`
-      <div class="card ex-card" data-ex="${slot.exId}">
-        <div class="ex-head">
-          <div>
-            ${slot.anchor ? '<div class="anchor-tag">⭐ Anchor lift</div>' : ''}
-            ${slot.bonus ? '<div class="bonus-tag">Bonus — Luke\'s extra 10 min</div>' : ''}
-            <div class="ex-name">${esc(ex.name)}</div>
-            <div class="ex-meta">${nSets} sets × ${slot.reps[0]}–${slot.reps[1]} ${ex.unit === 'time' ? 'sec' : 'reps'} · ${esc(ex.equip)}</div>
-          </div>
-          <a class="demo-link" href="${demoUrl(slot.exId)}" target="_blank" title="Watch demo">🎬</a>
-        </div>
-        ${sug ? `<div class="suggestion ${sug.target === undefined || /Stay|again/.test(sug.msg) ? 'hold' : ''}">${esc(sug.msg)}</div>`
-             : last ? '' : `<div class="suggestion hold">First time logging this — pick a weight you could do ~3 more reps with.</div>`}
-        <div class="sets"></div>
-        <div class="cue">💡 ${esc(ex.cue)}</div>
-        <button class="rest-btn" data-rest="${slot.rest}">⏱ Rest ${slot.rest}s</button>
-      </div>`);
-
-    const setsWrap = card.querySelector('.sets');
-    const rows = [];
-    for (let i = 0; i < nSets; i++) {
-      const s = saved[i] || {};
-      const lastSet = last && last.sets[Math.min(i, last.sets.length - 1)];
-      const wPh = ex.unit === 'lb' ? (sug && sug.target ? sug.target : (lastSet && lastSet.w) || 'lb') : '—';
-      const rPh = (lastSet && lastSet.r) || slot.reps[1];
-      const row = el(`
-        <div class="set-row">
-          <div class="set-num">Set ${i + 1}</div>
-          <input type="number" inputmode="decimal" class="in-w" placeholder="${wPh}" value="${s.w || ''}" ${ex.unit !== 'lb' ? 'disabled style="opacity:.35"' : ''}>
-          <input type="number" inputmode="numeric" class="in-r" placeholder="${rPh}" value="${s.r || ''}">
-          <button class="set-check ${s.done ? 'done' : ''}">✓</button>
-        </div>`);
-      const persist = () => {
-        const { iso: useIso, log } = ensureDayLog(user, todayISO(), selectedDay);
-        log.entries[slot.exId] = log.entries[slot.exId] || [];
-        log.entries[slot.exId][i] = {
-          w: parseFloat(row.querySelector('.in-w').value) || 0,
-          r: parseInt(row.querySelector('.in-r').value) || 0,
-          done: row.querySelector('.set-check').classList.contains('done'),
-        };
-        save();
-      };
-      row.querySelector('.in-w').addEventListener('change', persist);
-      row.querySelector('.in-r').addEventListener('change', persist);
-      row.querySelector('.set-check').addEventListener('click', (e) => {
-        const btn = e.currentTarget;
-        btn.classList.toggle('done');
-        // if they tap ✓ without typing, accept the placeholder values (fast logging)
-        const w = row.querySelector('.in-w'), r = row.querySelector('.in-r');
-        if (btn.classList.contains('done')) {
-          if (!w.value && ex.unit === 'lb' && !isNaN(parseFloat(w.placeholder))) w.value = w.placeholder;
-          if (!r.value && !isNaN(parseInt(r.placeholder))) r.value = r.placeholder;
-        }
-        persist();
-        if (!sessionLog()) startWorkoutSession(false); // logging a set = you're clearly working out
-        updateProgress();
-      });
-      rows.push(row);
-      setsWrap.appendChild(row);
-    }
-
-    // typing a weight into one set flows down as the placeholder for the
-    // sets below it, so later sets can be logged with a single ✓ tap
-    rows.forEach((row, i) => {
-      row.querySelector('.in-w').addEventListener('input', (e) => {
-        const val = e.target.value;
-        if (!val) return;
-        for (let j = i + 1; j < rows.length; j++) {
-          const w2 = rows[j].querySelector('.in-w');
-          if (!w2.value) w2.placeholder = val;
-        }
-      });
-    });
-
-    card.querySelector('.rest-btn').addEventListener('click', startRest);
-    v.appendChild(card);
+    v.appendChild(buildSlotCard(slot, nSets, entries[slot.exId] || []));
   }
 
   const done = el(`<button class="btn" ${completed ? 'disabled' : ''}>${completed ? '✓ Workout logged' : '🏁 Finish workout'}</button>`);
   done.onclick = () => finishWorkout(selectedDay);
   v.appendChild(done);
+}
+
+// One loggable exercise card (weight / reps / ✓ per set). Used by the strength
+// days and by Luke's heavy pair on Day C. Sets are saved into today's log for
+// selectedDay, so they feed progression and the Progress tab like any other lift.
+function buildSlotCard(slot, nSets, saved) {
+  const ex = EXERCISES[slot.exId];
+  const last = lastSession(user, slot.exId);
+  // heavy-pair sets repeat this week's anchor weight, so no "go heavier" nudge
+  const sug = !slot.heavy && last ? suggestProgress(last.sets, slot.reps, slot.exId) : null;
+  const lastW = last ? Math.max(0, ...last.sets.map(s => s.w || 0)) : 0;
+  const heavyMsg = `Second heavy day for this lift. Use the same weight as earlier this week${ex.unit === 'lb' && lastW ? ` (${lastW} lb)` : ''}. 3 solid sets, 1–2 reps in the tank.`;
+
+  const card = el(`
+    <div class="card ex-card" data-ex="${slot.exId}">
+      <div class="ex-head">
+        <div>
+          ${slot.heavy ? '<div class="anchor-tag">🏋️ Heavy pair · Luke only</div>' : slot.anchor ? '<div class="anchor-tag">⭐ Anchor lift</div>' : ''}
+          ${slot.bonus ? '<div class="bonus-tag">Bonus — Luke\'s extra 10 min</div>' : ''}
+          <div class="ex-name">${esc(ex.name)}</div>
+          <div class="ex-meta">${nSets} sets × ${slot.reps[0]}–${slot.reps[1]} ${ex.unit === 'time' ? 'sec' : 'reps'} · ${esc(ex.equip)}</div>
+        </div>
+        <a class="demo-link" href="${demoUrl(slot.exId)}" target="_blank" title="Watch demo">🎬</a>
+      </div>
+      ${slot.heavy ? `<div class="suggestion hold">${esc(heavyMsg)}</div>`
+           : sug ? `<div class="suggestion ${sug.target === undefined || /Stay|again/.test(sug.msg) ? 'hold' : ''}">${esc(sug.msg)}</div>`
+           : last ? '' : `<div class="suggestion hold">First time logging this — pick a weight you could do ~3 more reps with.</div>`}
+      <div class="sets"></div>
+      <div class="cue">💡 ${esc(ex.cue)}</div>
+      <button class="rest-btn" data-rest="${slot.rest}">⏱ Rest ${slot.rest}s</button>
+    </div>`);
+
+  const setsWrap = card.querySelector('.sets');
+  const rows = [];
+  for (let i = 0; i < nSets; i++) {
+    const s = saved[i] || {};
+    const lastSet = last && last.sets[Math.min(i, last.sets.length - 1)];
+    const wPh = ex.unit === 'lb' ? (sug && sug.target ? sug.target : (lastSet && lastSet.w) || 'lb') : '—';
+    const rPh = (lastSet && lastSet.r) || slot.reps[1];
+    const row = el(`
+      <div class="set-row">
+        <div class="set-num">Set ${i + 1}</div>
+        <input type="number" inputmode="decimal" class="in-w" placeholder="${wPh}" value="${s.w || ''}" ${ex.unit !== 'lb' ? 'disabled style="opacity:.35"' : ''}>
+        <input type="number" inputmode="numeric" class="in-r" placeholder="${rPh}" value="${s.r || ''}">
+        <button class="set-check ${s.done ? 'done' : ''}">✓</button>
+      </div>`);
+    const persist = () => {
+      const { log } = ensureDayLog(user, todayISO(), selectedDay);
+      log.entries[slot.exId] = log.entries[slot.exId] || [];
+      log.entries[slot.exId][i] = {
+        w: parseFloat(row.querySelector('.in-w').value) || 0,
+        r: parseInt(row.querySelector('.in-r').value) || 0,
+        done: row.querySelector('.set-check').classList.contains('done'),
+      };
+      save();
+    };
+    row.querySelector('.in-w').addEventListener('change', persist);
+    row.querySelector('.in-r').addEventListener('change', persist);
+    row.querySelector('.set-check').addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+      btn.classList.toggle('done');
+      // if they tap ✓ without typing, accept the placeholder values (fast logging)
+      const w = row.querySelector('.in-w'), r = row.querySelector('.in-r');
+      if (btn.classList.contains('done')) {
+        if (!w.value && ex.unit === 'lb' && !isNaN(parseFloat(w.placeholder))) w.value = w.placeholder;
+        if (!r.value && !isNaN(parseInt(r.placeholder))) r.value = r.placeholder;
+      }
+      persist();
+      if (!sessionLog()) startWorkoutSession(false); // logging a set = you're clearly working out
+      updateProgress();
+    });
+    rows.push(row);
+    setsWrap.appendChild(row);
+  }
+
+  // typing a weight into one set flows down as the placeholder for the
+  // sets below it, so later sets can be logged with a single ✓ tap
+  rows.forEach((row, i) => {
+    row.querySelector('.in-w').addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (!val) return;
+      for (let j = i + 1; j < rows.length; j++) {
+        const w2 = rows[j].querySelector('.in-w');
+        if (!w2.value) w2.placeholder = val;
+      }
+    });
+  });
+
+  card.querySelector('.rest-btn').addEventListener('click', startRest);
+  return card;
 }
 
 // ----- Multi-person circuit (F45-style staggered stations) -----
@@ -867,7 +879,14 @@ function renderCircuitDay(v, day, status) {
   v.appendChild(el(`<div class="card"><h3>🔄 ${esc(fmt.name)}</h3><div class="muted small">${esc(fmt.desc)}. Move station to station — write nothing down, just work. ${user === 'kristen' ? 'Kristen: you\'re done after the last round.' : ''}</div></div>`));
 
   renderPeoplePicker(v);
-  renderCircuitBody(v, fmt, day.stations, user === 'luke' && !shortMode ? day.finisher : null);
+  // Luke's finisher slot now goes to the heavy pair (2 anchors, 3 sets each)
+  renderCircuitBody(v, fmt, day.stations, null);
+
+  if (user === 'luke' && !shortMode && day.heavy) {
+    const entries = (existing && existing.day === 'C') ? existing.entries : {};
+    v.appendChild(el(`<div class="card" style="border-color:var(--accent)"><h3>🏋️ Heavy pair · ~10 min</h3><div class="muted small">Luke only. A second heavy day for two of this block's anchor lifts. Training solo? Do these first, while you're fresh. Circuit with Kristen? Do them right after.</div></div>`));
+    for (const slot of day.heavy) v.appendChild(buildSlotCard(slot, slot.sets.luke, entries[slot.exId] || []));
+  }
 
   const done = el(`<button class="btn" ${completed ? 'disabled' : ''}>${completed ? '✓ Workout logged' : '🏁 Finish workout'}</button>`);
   done.onclick = () => finishWorkout('C');
@@ -1408,6 +1427,7 @@ function renderWeek() {
     let detail;
     if (d === 'C') {
       detail = day.format.desc + '<br>' + day.stations.map(id => esc(EXERCISES[id].name)).join(' · ');
+      if (user === 'luke' && day.heavy) detail += '<br>🏋️ Heavy pair: ' + day.heavy.map(s => esc(EXERCISES[s.exId].name)).join(' · ');
     } else {
       const slots = day.slots.filter(s => user === 'luke' || !s.bonus);
       detail = slots.map(s => `${esc(EXERCISES[s.exId].name)}${s.anchor ? ' ⭐' : ''}`).join(' · ');

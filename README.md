@@ -6,13 +6,14 @@ Luke & Kristen's home-gym lifting program and tracker. No accounts, no subscript
 
 - **Generates your 3 workouts every week** — Day A (Lower + Core), Day B (Upper), Day C (Total-Body Circuit, F45 style). Any 3 days you want.
 - **Rotates for variety, holds steady for progress.** Accessories change every week. The two ⭐ anchor lifts per day stay fixed for a 4-week block so the weights can climb — then a new block starts with new anchors. Four blocks (Foundation → Build → Strength → Athletic) = a 16-week cycle before anything repeats.
-- **Nudges you heavier.** It remembers every set. Hit the top of the rep range on all sets and next time it tells you the new weight and pre-fills it.
+- **Nudges you heavier.** It remembers every set. Hit the top of the rep range on all sets and next time it tells you the new weight and pre-fills it (+10 lb on barbell squats/deadlifts/hip thrusts, +5 lb on everything else).
 - **Built-in circuit timer** for Day C — station intervals with beeps and vibration, phone stays awake, F45 without the membership.
-- **Both of you, one app.** Toggle Luke/Kristen at the top. Same workout, different dose: Luke ~40 min (extra sets + bonus block + finisher), Kristen ~30 min.
+- **Both of you, one app.** Toggle Luke/Kristen at the top. Same workout, different dose: Luke ~40 min (extra sets + bonus block + a Day C "heavy pair"), Kristen ~30 min.
 - **Deload every 4th week** — go ~10% lighter, on purpose. That's what makes the next block go up.
 - Core work lands on Days A and C (2x/week). Demo link (🎬) on every exercise. Streaks and charts under Progress.
 - **⚡ 20-minute mode** — a toggle on any workout day. Strength days become anchors-only (3 sets); circuit day drops to 2 rounds, no finisher. Still counts as a full workout for the week.
-- **🏃 Quick cardio generator** — bottom of the Today tab. Pick 10/15/20/30 min and a toy (bike, rower, treadmill, rope + ladder, pool, hoops, or a mix) and it hands you a workout. Logged separately as bonus work — it never counts toward (or against) the 3 lifting days, because Luke's running covers the cardio base.
+- **🏋️ Day C heavy pair (Luke)** — after (or before) the circuit, 3 heavy sets of two of the block's anchor lifts, alternating weekly. Each big lift gets a second heavy day, which protects muscle while cutting.
+- **🏃 Quick cardio generator** — bottom of the Today tab. Pick 10/15/20/30/45 min and a toy (💚 Zone 2, bike, rower, treadmill, rope + ladder, pool, hoops, or a mix) and it hands you a workout. Luke logs his Tue/Thu Zone 2 here. Logged separately as bonus work — it never counts toward (or against) the 3 lifting days.
 - **📬 Weekly recap** — first open of a new week shows last week's report card: lifts done, bonus cardio, new PRs, streak.
 
 Each phone stores its own logs (in the browser's local storage). The weekly workout is computed from the calendar, so both phones always show the same plan without syncing anything.

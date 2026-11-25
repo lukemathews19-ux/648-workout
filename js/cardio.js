@@ -1,7 +1,9 @@
-// On-demand cardio generator. Not a program — Luke runs with a friend 2-3x/week,
-// so this is a grab-bag button: pick a time and a toy, get a workout, log it.
+// On-demand cardio generator. Not a program — a grab-bag button: pick a time and
+// a toy, get a workout, log it. Zone 2 (added Nov 2026) is where Luke logs his
+// Tue/Thu easy Greenway sessions so they show up in the weekly recap.
 
 const CARDIO_MODES = {
+  z2:    { label: '💚 Zone 2' },
   mix:   { label: '🎲 Mix it up' },
   bike:  { label: '🚴 Bike' },
   row:   { label: '🚣 Rower' },
@@ -25,7 +27,20 @@ function machineCardio(mode, name) {
   ];
 }
 
+// Zone 2 = easy, steady, conversational. The point is time at a low, even effort,
+// not intensity. Talk-test pace; no surges.
+const Z2_TALK = 'Talk test: you can speak in full sentences. Can\'t? Slow down or walk.';
+const ZONE2 = [
+  { dur: 30, mode: 'z2', title: 'Zone 2 · Greenway', steps: ['30 min easy run or run-walk at a steady, conversational pace', Z2_TALK, 'Keep it even the whole way. No surges, no racing the hills.'] },
+  { dur: 30, mode: 'z2', title: 'Zone 2 · Bike', steps: ['30 min steady spin, moderate resistance', Z2_TALK, 'Same effort start to finish. Good one for rainy days.'] },
+  { dur: 30, mode: 'z2', title: 'Zone 2 · Incline Walk', steps: ['30 min treadmill walk at 8-12% incline', Z2_TALK, 'No hands on the rails. Raise the incline if it feels too easy.'] },
+  { dur: 45, mode: 'z2', title: 'Zone 2 · Long Greenway', steps: ['45 min easy run or run-walk at a steady, conversational pace', Z2_TALK, 'Walk the hills if your breathing jumps. Easy should feel almost too easy.'] },
+  { dur: 45, mode: 'z2', title: 'Zone 2 · Bike + Row', steps: ['25 min steady bike, then 20 min steady row', Z2_TALK, 'Smooth and even on both. This is aerobic base work, not a sprint.'] },
+  { dur: 45, mode: 'z2', title: 'Zone 2 · Incline Walk', steps: ['45 min treadmill walk at 8-12% incline', Z2_TALK, 'Throw on a podcast. No hands on the rails.'] },
+];
+
 const CARDIO_TEMPLATES = [
+  ...ZONE2,
   ...machineCardio('bike', 'Bike'),
   ...machineCardio('row', 'Rower'),
   ...machineCardio('tread', 'Treadmill'),

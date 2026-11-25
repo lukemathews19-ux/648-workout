@@ -170,8 +170,17 @@ function buildWeek(date) {
       pick('c_engine', week, 0),
       pick('c_core', week, 1),
     ],
-    // Luke-only finisher to fill his extra 10 minutes
+    // Luke-only finisher. No longer shown on Day C (the heavy pair below took its
+    // slot, Nov 2026) but kept so the data shape stays the same.
     finisher: { exId: pick('c_carry', week, 1), desc: '3 rounds: 30-45s on / 30s off. Luke only — Kristen is done!' },
+    // Luke-only "heavy pair" (added Nov 2026, Luke's fat-loss phase): a second
+    // weekly exposure to two of this block's anchors, logged like strength sets.
+    // Alternates weekly: squat + horizontal push, then hinge + pull. Each anchor
+    // gets 2 heavy days every other week, which protects muscle on a cut.
+    heavy: (((week % 2) + 2) % 2 === 0
+      ? [block.anchors.squat, block.anchors.hpush]
+      : [block.anchors.hinge, block.anchors.pull]
+    ).map(exId => ({ exId, sets: { luke: 3, kristen: 0 }, reps: EXERCISES[exId].reps, anchor: true, heavy: true, rest: 90 })),
   };
   // no duplicate stations
   const seen = new Set();
@@ -214,8 +223,11 @@ function suggestProgress(lastSets, reps, exId) {
   const topWeight = Math.max(...weights);
   const allAtTop = lastSets.every(s => (s.r || 0) >= hi && (s.w || 0) >= topWeight);
   const anyBelow = lastSets.some(s => (s.r || 0) > 0 && (s.r || 0) < lo);
+  // +10 lb only for barbell lower-body lifts. Dumbbell/kettlebell lower-body
+  // lifts go up 5 lb at a time (a 10 lb jump per hand is too big on a lunge).
   const lowerBody = ['squat', 'hinge', 'lunge', 'glute'].includes(ex.cat);
-  const inc = lowerBody ? 10 : 5;
+  const barbell = /barbell/i.test(ex.equip);
+  const inc = lowerBody && barbell ? 10 : 5;
   if (allAtTop) return { msg: `You hit ${hi}+ reps on every set at ${topWeight} lb. Go ${topWeight + inc} lb today. 📈`, target: topWeight + inc };
   if (anyBelow) return { msg: `Stay at ${topWeight} lb and own the rep range first.`, target: topWeight };
   return { msg: `${topWeight} lb again — try to beat last time's reps.`, target: topWeight };
